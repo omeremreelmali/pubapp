@@ -168,6 +168,17 @@ export default async function DashboardPage() {
                   </CardContent>
                 </Card>
               </Link>
+
+              <Link href="/dashboard/groups">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="flex items-center justify-center p-6">
+                    <div className="text-center">
+                      <Users className="h-8 w-8 mx-auto mb-2 text-indigo-600" />
+                      <p className="text-sm font-medium">Test Grupları</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             </>
           )}
 

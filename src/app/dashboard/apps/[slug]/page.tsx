@@ -68,19 +68,20 @@ async function getAppBySlug(slug: string, organizationId: string) {
 }
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 export default async function AppDetailPage({ params }: PageProps) {
+  const { slug } = await params;
   const user = await requireAuth();
 
   if (!user.organizationId) {
     return <div>Organizasyon bulunamadı</div>;
   }
 
-  const app = await getAppBySlug(params.slug, user.organizationId);
+  const app = await getAppBySlug(slug, user.organizationId);
 
   if (!app) {
     notFound();

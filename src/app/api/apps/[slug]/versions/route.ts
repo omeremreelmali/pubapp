@@ -7,9 +7,10 @@ import { generateFileName, validateFile } from "@/lib/file-utils";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await params;
     const user = await requireEditorOrAdmin();
 
     if (!user.organizationId) {
@@ -22,7 +23,7 @@ export async function POST(
     // Get app by slug
     const app = await prisma.app.findFirst({
       where: {
-        slug: params.slug,
+        slug,
         organizationId: user.organizationId,
       },
     });
@@ -155,9 +156,10 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await params;
     const user = await requireEditorOrAdmin();
 
     if (!user.organizationId) {
@@ -170,7 +172,7 @@ export async function GET(
     // Get app by slug
     const app = await prisma.app.findFirst({
       where: {
-        slug: params.slug,
+        slug,
         organizationId: user.organizationId,
       },
     });

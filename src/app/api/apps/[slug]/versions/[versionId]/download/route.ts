@@ -4,9 +4,10 @@ import { requireAuth } from "@/lib/auth-utils";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string; versionId: string } }
+  { params }: { params: Promise<{ slug: string; versionId: string }> }
 ) {
   try {
+    const { slug, versionId } = await params;
     const user = await requireAuth();
 
     if (!user.organizationId) {
@@ -19,7 +20,7 @@ export async function POST(
     // Get app by slug
     const app = await prisma.app.findFirst({
       where: {
-        slug: params.slug,
+        slug,
         organizationId: user.organizationId,
       },
     });
@@ -34,7 +35,7 @@ export async function POST(
     // Get version
     const version = await prisma.appVersion.findFirst({
       where: {
-        id: params.versionId,
+        id: versionId,
         appId: app.id,
       },
     });

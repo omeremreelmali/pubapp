@@ -4,12 +4,13 @@ import { generateDownloadUrl } from "@/lib/minio";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
+    const { token } = await params;
     // Find download link by token
     const downloadLink = await prisma.downloadLink.findUnique({
-      where: { token: params.token },
+      where: { token },
       include: {
         version: {
           include: {
