@@ -76,6 +76,7 @@ export async function POST(
     const downloadLink = await prisma.downloadLink.create({
       data: {
         versionId: version.id,
+        createdById: user.id,
         expiresAt,
       },
     });

@@ -105,6 +105,9 @@ model User {
   // Yüklediği versiyonlar
   uploadedVersions AppVersion[]
 
+  // Oluşturduğu indirme linkleri
+  downloadLinks DownloadLink[]
+
   @@map("users")
 }
 
@@ -235,6 +238,8 @@ model DownloadLink {
   token        String     @unique @default(cuid())
   versionId    String
   version      AppVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    User       @relation(fields: [createdById], references: [id])
   expiresAt    DateTime
   downloadedAt DateTime?
   createdAt    DateTime   @default(now())

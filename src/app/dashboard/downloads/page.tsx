@@ -58,6 +58,12 @@ interface DownloadStats {
         platform: string;
       };
     };
+    createdBy: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+    };
   }>;
 }
 
@@ -119,6 +125,20 @@ export default function DownloadsPage() {
     }
 
     return <Badge variant="secondary">Aktif</Badge>;
+  };
+
+  const getRoleBadge = (role: string) => {
+    const variants = {
+      ADMIN: "default",
+      EDITOR: "secondary",
+      TESTER: "outline",
+    } as const;
+
+    return (
+      <Badge variant={variants[role as keyof typeof variants] || "outline"}>
+        {role}
+      </Badge>
+    );
   };
 
   if (isLoading) {
@@ -291,6 +311,7 @@ export default function DownloadsPage() {
                         <TableHead>Uygulama</TableHead>
                         <TableHead>Versiyon</TableHead>
                         <TableHead>Platform</TableHead>
+                        <TableHead>İndiren Kişi</TableHead>
                         <TableHead>Oluşturulma</TableHead>
                         <TableHead>Son Kullanma</TableHead>
                         <TableHead>Durum</TableHead>
@@ -308,6 +329,19 @@ export default function DownloadsPage() {
                           </TableCell>
                           <TableCell>
                             {getPlatformBadge(download.version.app.platform)}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">
+                                {download.createdBy.name}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {download.createdBy.email}
+                              </div>
+                              <div className="mt-1">
+                                {getRoleBadge(download.createdBy.role)}
+                              </div>
+                            </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center text-sm text-gray-500">
