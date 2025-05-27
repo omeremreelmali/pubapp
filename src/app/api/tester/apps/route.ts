@@ -1,0 +1,100 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/auth-utils";
+
+export async function GET(request: NextRequest) {
+  try {
+    const user = await requireAuth();
+
+    if (!user.organizationId) {
+      return NextResponse.json(
+        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { status: 400 }
+      );
+    }
+
+    // If user is ADMIN or EDITOR, return all apps
+    if (user.role === "ADMIN" || user.role === "EDITOR") {
+      const apps = await prisma.app.findMany({
+        where: { organizationId: user.organizationId },
+        include: {
+          versions: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: {
+              uploadedBy: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                },
+              },
+            },
+          },
+          _count: {
+            select: {
+              versions: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      return NextResponse.json({ apps });
+    }
+
+    // For TESTER role, only return apps they have access to through groups
+    const userGroups = await prisma.groupMember.findMany({
+      where: { userId: user.id },
+      include: {
+        group: {
+          include: {
+            appAccess: {
+              include: {
+                app: {
+                  include: {
+                    versions: {
+                      orderBy: { createdAt: "desc" },
+                      take: 1,
+                      include: {
+                        uploadedBy: {
+                          select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                          },
+                        },
+                      },
+                    },
+                    _count: {
+                      select: {
+                        versions: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Extract unique apps from all groups
+    const appsMap = new Map();
+    userGroups.forEach((groupMember) => {
+      groupMember.group.appAccess.forEach((appAccess) => {
+        if (!appsMap.has(appAccess.app.id)) {
+          appsMap.set(appAccess.app.id, appAccess.app);
+        }
+      });
+    });
+
+    const apps = Array.from(appsMap.values());
+
+    return NextResponse.json({ apps });
+  } catch (error: any) {
+    console.error("Get tester apps error:", error);
+    return NextResponse.json({ error: "Bir hata oluştu" }, { status: 500 });
+  }
+}

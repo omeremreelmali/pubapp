@@ -47,6 +47,29 @@ export async function POST(
       );
     }
 
+    // For TESTER role, check if they have access through groups
+    if (user.role === "TESTER") {
+      const hasAccess = await prisma.groupMember.findFirst({
+        where: {
+          userId: user.id,
+          group: {
+            appAccess: {
+              some: {
+                appId: app.id,
+              },
+            },
+          },
+        },
+      });
+
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: "Bu uygulamaya erişim yetkiniz yok" },
+          { status: 403 }
+        );
+      }
+    }
+
     // Create download link (expires in 24 hours)
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 

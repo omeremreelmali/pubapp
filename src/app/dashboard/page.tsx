@@ -54,6 +54,11 @@ export default async function DashboardPage() {
     redirect("/dashboard/setup");
   }
 
+  // Redirect TESTER role to their specific dashboard
+  if (user.role === "TESTER") {
+    redirect("/dashboard/tester");
+  }
+
   const stats = await getDashboardStats(user.id, user.organizationId);
 
   return (
