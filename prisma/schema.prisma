@@ -1,0 +1,243 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js için gerekli modeller
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Kullanıcı rolleri enum
+enum UserRole {
+  ADMIN
+  EDITOR
+  TESTER
+}
+
+// Organizasyon modeli
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  inviteCode  String   @unique @default(cuid())
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // İlişkiler
+  users        User[]
+  apps         App[]
+  groups       Group[]
+  invitations  OrganizationInvitation[]
+
+  @@map("organizations")
+}
+
+// Kullanıcı modeli
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          UserRole  @default(TESTER)
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth.js ilişkileri
+  accounts Account[]
+  sessions Session[]
+
+  // Organizasyon ilişkisi
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  // Grup üyelikleri
+  groupMemberships GroupMember[]
+
+  // Oluşturduğu uygulamalar
+  createdApps App[]
+
+  // Yüklediği versiyonlar
+  uploadedVersions AppVersion[]
+
+  @@map("users")
+}
+
+// Organizasyon davetleri
+model OrganizationInvitation {
+  id             String       @id @default(cuid())
+  email          String
+  role           UserRole     @default(TESTER)
+  inviteCode     String       @unique @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  expiresAt      DateTime
+  createdAt      DateTime     @default(now())
+  usedAt         DateTime?
+
+  @@unique([email, organizationId])
+  @@map("organization_invitations")
+}
+
+// Grup modeli (Test kullanıcı grupları)
+model Group {
+  id             String       @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Grup üyeleri
+  members GroupMember[]
+
+  // Grup erişim izinleri
+  appAccess GroupAppAccess[]
+
+  @@unique([name, organizationId])
+  @@map("groups")
+}
+
+// Grup üyelikleri
+model GroupMember {
+  id      String @id @default(cuid())
+  userId  String
+  groupId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, groupId])
+  @@map("group_members")
+}
+
+// Platform enum (Android/iOS)
+enum Platform {
+  ANDROID
+  IOS
+}
+
+// Uygulama modeli
+model App {
+  id             String       @id @default(cuid())
+  name           String
+  slug           String       @unique
+  packageName    String       @unique
+  platform       Platform
+  description    String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdById    String
+  createdBy      User         @relation(fields: [createdById], references: [id])
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Uygulama versiyonları
+  versions AppVersion[]
+
+  // Grup erişim izinleri
+  groupAccess GroupAppAccess[]
+
+  @@unique([slug, organizationId])
+  @@map("apps")
+}
+
+// Uygulama versiyonu modeli
+model AppVersion {
+  id               String   @id @default(cuid())
+  version          String   // Semantic versioning (1.0.0)
+  buildNumber      Int
+  releaseNotes     String?
+  fileName         String   // MinIO'daki dosya adı
+  originalFileName String   // Orijinal dosya adı
+  fileSize         Int
+  mimeType         String?  // MIME type
+  downloadCount    Int      @default(0)
+  appId            String
+  app              App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  uploadedById     String
+  uploadedBy       User     @relation(fields: [uploadedById], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // İndirme linkleri
+  downloadLinks DownloadLink[]
+
+  @@unique([version, appId])
+  @@unique([buildNumber, appId])
+  @@map("app_versions")
+}
+
+// Grup-Uygulama erişim izinleri
+model GroupAppAccess {
+  id      String @id @default(cuid())
+  groupId String
+  appId   String
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  app     App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  grantedAt DateTime @default(now())
+
+  @@unique([groupId, appId])
+  @@map("group_app_access")
+}
+
+// İndirme linkleri (Pre-signed URL'ler için)
+model DownloadLink {
+  id           String     @id @default(cuid())
+  token        String     @unique @default(cuid())
+  versionId    String
+  version      AppVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime
+  downloadedAt DateTime?
+  createdAt    DateTime   @default(now())
+
+  @@map("download_links")
+}
