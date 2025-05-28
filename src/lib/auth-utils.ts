@@ -16,9 +16,20 @@ export async function requireAuth() {
   return user;
 }
 
-export async function requireRole(allowedRoles: UserRole[]) {
+export async function requireActiveOrganization() {
   const user = await requireAuth();
-  if (!allowedRoles.includes(user.role)) {
+  if (!user.activeOrganization) {
+    redirect("/dashboard/organizations");
+  }
+  return user;
+}
+
+export async function requireRole(allowedRoles: UserRole[]) {
+  const user = await requireActiveOrganization();
+  if (
+    !user.activeOrganization ||
+    !allowedRoles.includes(user.activeOrganization.role)
+  ) {
     redirect("/unauthorized");
   }
   return user;
@@ -49,4 +60,17 @@ export function isEditor(userRole: UserRole): boolean {
 
 export function isTester(userRole: UserRole): boolean {
   return userRole === UserRole.TESTER;
+}
+
+export function getCurrentRole(user: any): UserRole | null {
+  return user.activeOrganization?.role || null;
+}
+
+export function hasOrganizationAccess(
+  user: any,
+  organizationId: string
+): boolean {
+  return user.organizations.some(
+    (org: any) => org.organization.id === organizationId
+  );
 }

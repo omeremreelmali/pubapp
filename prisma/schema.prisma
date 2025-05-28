@@ -87,6 +87,21 @@ model VersionTag {
   @@map("version_tags")
 }
 
+// Organizasyon üyelikleri (Many-to-Many)
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           UserRole     @default(TESTER)
+  joinedAt       DateTime     @default(now())
+  
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
 // Organizasyon modeli
 model Organization {
   id          String   @id @default(cuid())
@@ -98,7 +113,7 @@ model Organization {
   updatedAt   DateTime @updatedAt
 
   // İlişkiler
-  users        User[]
+  members      OrganizationMember[]
   apps         App[]
   groups       Group[]
   invitations  OrganizationInvitation[]
@@ -113,7 +128,6 @@ model User {
   email         String    @unique
   name          String?
   password      String
-  role          UserRole  @default(TESTER)
   emailVerified DateTime?
   image         String?
   createdAt     DateTime  @default(now())
@@ -123,9 +137,8 @@ model User {
   accounts Account[]
   sessions Session[]
 
-  // Organizasyon ilişkisi
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
+  // Organizasyon üyelikleri
+  organizationMemberships OrganizationMember[]
 
   // Grup üyelikleri
   groupMemberships GroupMember[]

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth, getCurrentRole } from "@/lib/auth-utils";
 import * as yup from "yup";
 
 const updateTagSchema = yup.object({
@@ -22,15 +22,17 @@ export async function PUT(
     const { tagId } = await params;
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
+    const currentRole = getCurrentRole(user);
+
     // Only ADMIN and EDITOR can update tags
-    if (user.role === "TESTER") {
+    if (currentRole === "TESTER") {
       return NextResponse.json(
         { error: "Tag güncellemek için yetkiniz yok" },
         { status: 403 }
@@ -41,7 +43,7 @@ export async function PUT(
     const existingTag = await prisma.tag.findFirst({
       where: {
         id: tagId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -57,7 +59,7 @@ export async function PUT(
       const duplicateTag = await prisma.tag.findFirst({
         where: {
           name: validatedData.name,
-          organizationId: user.organizationId,
+          organizationId: user.activeOrganization.id,
           id: { not: tagId },
         },
       });
@@ -95,15 +97,17 @@ export async function DELETE(
     const { tagId } = await params;
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
+    const currentRole = getCurrentRole(user);
+
     // Only ADMIN and EDITOR can delete tags
-    if (user.role === "TESTER") {
+    if (currentRole === "TESTER") {
       return NextResponse.json(
         { error: "Tag silmek için yetkiniz yok" },
         { status: 403 }
@@ -114,7 +118,7 @@ export async function DELETE(
     const existingTag = await prisma.tag.findFirst({
       where: {
         id: tagId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -32,6 +33,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { DownloadButton } from "@/components/dashboard/download-button";
+import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher";
 
 interface App {
   id: string;
@@ -59,6 +61,7 @@ interface App {
 }
 
 export default function TesterDashboardPage() {
+  const { data: session } = useSession();
   const [apps, setApps] = useState<App[]>([]);
   const [filteredApps, setFilteredApps] = useState<App[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,23 +72,33 @@ export default function TesterDashboardPage() {
     fetchApps();
   }, []);
 
+  // Organizasyon değişikliğini dinle ve uygulamaları yeniden yükle
+  useEffect(() => {
+    if (session?.user?.activeOrganization) {
+      fetchApps();
+    }
+  }, [session?.user?.activeOrganization?.id]);
+
   useEffect(() => {
     filterApps();
   }, [apps, searchTerm, platformFilter]);
 
   const fetchApps = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch("/api/tester/apps");
       const data = await response.json();
 
       if (!response.ok) {
         toast.error(data.error || "Uygulamalar yüklenirken hata oluştu");
+        setApps([]);
         return;
       }
 
       setApps(data.apps);
     } catch (error) {
       toast.error("Bir hata oluştu");
+      setApps([]);
     } finally {
       setIsLoading(false);
     }
@@ -180,10 +193,15 @@ export default function TesterDashboardPage() {
                 Test Uygulamaları
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Size atanan test uygulamalarını görüntüleyin ve indirin
+                {session?.user?.activeOrganization
+                  ? `${session.user.activeOrganization.name} organizasyonunda size atanan test uygulamalarını görüntüleyin ve indirin`
+                  : "Size atanan test uygulamalarını görüntüleyin ve indirin"}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <div className="w-64">
+                <OrganizationSwitcher />
+              </div>
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
                   Ana Sayfa
@@ -306,7 +324,9 @@ export default function TesterDashboardPage() {
           <CardHeader>
             <CardTitle>Erişilebilir Uygulamalar</CardTitle>
             <CardDescription>
-              Size atanan test uygulamaları ({filteredApps.length} uygulama)
+              {session?.user?.activeOrganization
+                ? `${session.user.activeOrganization.name} organizasyonunda size atanan test uygulamaları (${filteredApps.length} uygulama)`
+                : `Size atanan test uygulamaları (${filteredApps.length} uygulama)`}
             </CardDescription>
           </CardHeader>
           <CardContent>

@@ -20,6 +20,7 @@ import {
   LogOut,
 } from "lucide-react";
 import Link from "next/link";
+import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher";
 
 async function getDashboardStats(
   userId: string,
@@ -35,7 +36,7 @@ async function getDashboardStats(
   }
 
   const [totalUsers, totalApps, totalDownloads] = await Promise.all([
-    prisma.user.count({
+    prisma.organizationMember.count({
       where: { organizationId },
     }),
     prisma.app.count({
@@ -58,16 +59,16 @@ async function getDashboardStats(
 export default async function DashboardPage() {
   const user = await requireAuth();
 
-  if (!user.organizationId) {
-    redirect("/dashboard/setup");
+  if (!user.activeOrganization) {
+    redirect("/dashboard/organizations");
   }
 
   // Redirect TESTER role to their specific dashboard
-  if (user.role === "TESTER") {
+  if (user.activeOrganization.role === "TESTER") {
     redirect("/dashboard/tester");
   }
 
-  const stats = await getDashboardStats(user.id, user.organizationId);
+  const stats = await getDashboardStats(user.id, user.activeOrganization.id);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -84,14 +85,14 @@ export default async function DashboardPage() {
             <div className="flex items-center space-x-4">
               <Badge
                 variant={
-                  user.role === "ADMIN"
+                  user.activeOrganization.role === "ADMIN"
                     ? "default"
-                    : user.role === "EDITOR"
+                    : user.activeOrganization.role === "EDITOR"
                     ? "secondary"
                     : "outline"
                 }
               >
-                {user.role}
+                {user.activeOrganization.role}
               </Badge>
               <Link href="/auth/signout">
                 <Button variant="outline">
@@ -109,13 +110,20 @@ export default async function DashboardPage() {
         <div className="mb-8">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Building2 className="mr-2 h-5 w-5" />
-                {user.organization?.name}
-              </CardTitle>
-              <CardDescription>
-                Organizasyon Kodu: {user.organization?.slug}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center">
+                    <Building2 className="mr-2 h-5 w-5" />
+                    {user.activeOrganization.name}
+                  </CardTitle>
+                  <CardDescription>
+                    Organizasyon Kodu: {user.activeOrganization.slug}
+                  </CardDescription>
+                </div>
+                <div className="w-64">
+                  <OrganizationSwitcher />
+                </div>
+              </div>
             </CardHeader>
           </Card>
         </div>
@@ -161,7 +169,8 @@ export default async function DashboardPage() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {(user.role === "ADMIN" || user.role === "EDITOR") && (
+          {(user.activeOrganization.role === "ADMIN" ||
+            user.activeOrganization.role === "EDITOR") && (
             <>
               <Link href="/dashboard/apps/new">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
@@ -200,7 +209,7 @@ export default async function DashboardPage() {
                 <Card className="hover:shadow-md transition-shadow cursor-pointer">
                   <CardContent className="flex items-center justify-center p-6">
                     <div className="text-center">
-                      <Tag className="h-8 w-8 mx-auto mb-2 text-pink-600" />
+                      <Tag className="h-8 w-8 mx-auto mb-2 text-purple-600" />
                       <p className="text-sm font-medium">Tag Yönetimi</p>
                     </div>
                   </CardContent>
@@ -213,7 +222,7 @@ export default async function DashboardPage() {
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="flex items-center justify-center p-6">
                 <div className="text-center">
-                  <Smartphone className="h-8 w-8 mx-auto mb-2 text-purple-600" />
+                  <Smartphone className="h-8 w-8 mx-auto mb-2 text-orange-600" />
                   <p className="text-sm font-medium">Uygulamalar</p>
                 </div>
               </CardContent>
@@ -224,8 +233,8 @@ export default async function DashboardPage() {
             <Card className="hover:shadow-md transition-shadow cursor-pointer">
               <CardContent className="flex items-center justify-center p-6">
                 <div className="text-center">
-                  <Download className="h-8 w-8 mx-auto mb-2 text-orange-600" />
-                  <p className="text-sm font-medium">İndirmeler</p>
+                  <Download className="h-8 w-8 mx-auto mb-2 text-red-600" />
+                  <p className="text-sm font-medium">İndirme İstatistikleri</p>
                 </div>
               </CardContent>
             </Card>

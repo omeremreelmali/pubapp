@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth, getCurrentRole } from "@/lib/auth-utils";
 
 export async function POST(
   request: NextRequest,
@@ -10,9 +10,9 @@ export async function POST(
     const { slug, versionId } = await params;
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -21,7 +21,7 @@ export async function POST(
     const app = await prisma.app.findFirst({
       where: {
         slug,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -47,8 +47,10 @@ export async function POST(
       );
     }
 
+    const currentRole = getCurrentRole(user);
+
     // For TESTER role, check if they have access through groups
-    if (user.role === "TESTER") {
+    if (currentRole === "TESTER") {
       const hasAccess = await prisma.groupMember.findFirst({
         where: {
           userId: user.id,

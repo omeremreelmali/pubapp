@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ import { Loader2, UserPlus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
 export function InviteUserDialog() {
+  const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -32,7 +34,7 @@ export function InviteUserDialog() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [inviteCode, setInviteCode] = useState("");
+  const [inviteUrl, setInviteUrl] = useState("");
   const [copied, setCopied] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,14 +43,23 @@ export function InviteUserDialog() {
     setError("");
     setSuccess("");
 
+    if (!session?.user?.activeOrganization) {
+      setError("Aktif organizasyon bulunamadı");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = await fetch("/api/organizations/invite", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await fetch(
+        `/api/organizations/${session.user.activeOrganization.id}/invitations`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        }
+      );
 
       const data = await response.json();
 
@@ -56,7 +67,7 @@ export function InviteUserDialog() {
         setError(data.error || "Bir hata oluştu");
       } else {
         setSuccess("Davet başarıyla gönderildi!");
-        setInviteCode(data.invitation.inviteCode);
+        setInviteUrl(data.invitation.inviteUrl);
         setFormData({ email: "", role: "TESTER" });
         toast.success("Kullanıcı başarıyla davet edildi!");
       }
@@ -68,9 +79,8 @@ export function InviteUserDialog() {
   };
 
   const copyInviteLink = async () => {
-    const inviteLink = `${window.location.origin}/auth/signup?invite=${inviteCode}`;
     try {
-      await navigator.clipboard.writeText(inviteLink);
+      await navigator.clipboard.writeText(inviteUrl);
       setCopied(true);
       toast.success("Davet linki kopyalandı!");
       setTimeout(() => setCopied(false), 2000);
@@ -83,7 +93,7 @@ export function InviteUserDialog() {
     setFormData({ email: "", role: "TESTER" });
     setError("");
     setSuccess("");
-    setInviteCode("");
+    setInviteUrl("");
     setCopied(false);
   };
 
@@ -185,11 +195,7 @@ export function InviteUserDialog() {
             <div className="space-y-2">
               <Label>Davet Linki</Label>
               <div className="flex space-x-2">
-                <Input
-                  value={`${window.location.origin}/auth/signup?invite=${inviteCode}`}
-                  readOnly
-                  className="flex-1"
-                />
+                <Input value={inviteUrl} readOnly className="flex-1" />
                 <Button
                   type="button"
                   variant="outline"

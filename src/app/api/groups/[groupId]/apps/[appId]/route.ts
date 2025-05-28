@@ -10,9 +10,9 @@ export async function DELETE(
     const { groupId, appId } = await params;
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -21,7 +21,7 @@ export async function DELETE(
     const group = await prisma.group.findFirst({
       where: {
         id: groupId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -54,7 +54,7 @@ export async function DELETE(
     }
 
     // Check if app belongs to same organization
-    if (appAccess.app.organizationId !== user.organizationId) {
+    if (appAccess.app.organizationId !== user.activeOrganization.id) {
       return NextResponse.json({ error: "Yetkisiz erişim" }, { status: 403 });
     }
 

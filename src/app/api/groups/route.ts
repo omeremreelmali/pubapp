@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireEditorOrAdmin } from "@/lib/auth-utils";
+import { requireEditorOrAdmin, getCurrentRole } from "@/lib/auth-utils";
 import { createGroupSchema } from "@/lib/validations/group";
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     const existingGroup = await prisma.group.findFirst({
       where: {
         name: validatedData.name,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: validatedData.name,
         description: validatedData.description,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
       include: {
         members: {
@@ -47,7 +47,6 @@ export async function POST(request: NextRequest) {
                 id: true,
                 name: true,
                 email: true,
-                role: true,
               },
             },
           },
@@ -91,9 +90,9 @@ export async function GET(request: NextRequest) {
   try {
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -102,7 +101,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
 
     const whereClause: any = {
-      organizationId: user.organizationId,
+      organizationId: user.activeOrganization.id,
     };
 
     if (search) {
@@ -122,7 +121,6 @@ export async function GET(request: NextRequest) {
                 id: true,
                 name: true,
                 email: true,
-                role: true,
               },
             },
           },

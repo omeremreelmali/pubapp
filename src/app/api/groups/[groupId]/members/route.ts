@@ -11,9 +11,9 @@ export async function POST(
     const { groupId } = await params;
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -25,7 +25,7 @@ export async function POST(
     const group = await prisma.group.findFirst({
       where: {
         id: groupId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -34,10 +34,13 @@ export async function POST(
     }
 
     // Check if user exists and belongs to same organization
-    const targetUser = await prisma.user.findFirst({
+    const targetUser = await prisma.organizationMember.findFirst({
       where: {
-        id: validatedData.userId,
-        organizationId: user.organizationId,
+        userId: validatedData.userId,
+        organizationId: user.activeOrganization.id,
+      },
+      include: {
+        user: true,
       },
     });
 
@@ -75,7 +78,6 @@ export async function POST(
             id: true,
             name: true,
             email: true,
-            role: true,
           },
         },
       },
@@ -104,9 +106,9 @@ export async function GET(
     const { groupId } = await params;
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -115,7 +117,7 @@ export async function GET(
     const group = await prisma.group.findFirst({
       where: {
         id: groupId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -131,7 +133,6 @@ export async function GET(
             id: true,
             name: true,
             email: true,
-            role: true,
           },
         },
       },
