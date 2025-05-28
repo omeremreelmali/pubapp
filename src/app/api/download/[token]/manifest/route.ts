@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generateDownloadUrl } from "@/lib/minio";
 
 export async function GET(
   request: NextRequest,
@@ -21,6 +22,7 @@ export async function GET(
                 platform: true,
                 packageName: true,
                 iosBundleId: true,
+                iosMinimumVersion: true,
                 organizationId: true,
               },
             },
@@ -47,82 +49,79 @@ export async function GET(
     // Only for iOS apps
     if (downloadLink.version.app.platform !== "IOS") {
       return NextResponse.json(
-        { error: "Manifest sadece iOS uygulamaları için desteklenir" },
+        { error: "Bu endpoint sadece iOS uygulamaları için kullanılabilir" },
         { status: 400 }
       );
     }
 
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
-    const downloadUrl = `${baseUrl}/api/download/${token}`;
+    // Generate pre-signed URL for the IPA file
+    const ipaUrl = await generateDownloadUrl(
+      downloadLink.version.fileName,
+      3600 // 1 hour
+    );
 
-    // Generate iOS manifest
-    const manifest = generateIOSManifest({
-      appName: downloadLink.version.app.name,
-      bundleId:
-        downloadLink.version.app.iosBundleId ||
-        downloadLink.version.app.packageName,
-      version: downloadLink.version.version,
-      buildNumber: downloadLink.version.buildNumber,
-      downloadUrl,
-      fileSize: downloadLink.version.fileSize,
+    // Create manifest.plist content
+    const bundleId =
+      downloadLink.version.app.iosBundleId ||
+      downloadLink.version.app.packageName;
+    const appName = downloadLink.version.app.name;
+    const version = downloadLink.version.version;
+    const minimumOSVersion =
+      downloadLink.version.app.iosMinimumVersion || "12.0";
+
+    const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>items</key>
+  <array>
+    <dict>
+      <key>assets</key>
+      <array>
+        <dict>
+          <key>kind</key>
+          <string>software-package</string>
+          <key>url</key>
+          <string>${ipaUrl}</string>
+        </dict>
+      </array>
+      <key>metadata</key>
+      <dict>
+        <key>bundle-identifier</key>
+        <string>${bundleId}</string>
+        <key>bundle-version</key>
+        <string>${version}</string>
+        <key>kind</key>
+        <string>software</string>
+        <key>platform-identifier</key>
+        <string>com.apple.platform.iphoneos</string>
+        <key>title</key>
+        <string>${appName}</string>
+        <key>minimum-os-version</key>
+        <string>${minimumOSVersion}</string>
+      </dict>
+    </dict>
+  </array>
+</dict>
+</plist>`;
+
+    // Update download count
+    await prisma.appVersion.update({
+      where: { id: downloadLink.version.id },
+      data: { downloadCount: { increment: 1 } },
     });
 
     return new NextResponse(manifest, {
       headers: {
-        "Content-Type": "application/xml",
-        "Cache-Control": "no-cache",
+        "Content-Type": "application/xml; charset=utf-8",
+        "Content-Disposition": 'inline; filename="manifest.plist"',
       },
     });
   } catch (error: any) {
-    console.error("Manifest generation error:", error);
+    console.error("Manifest error:", error);
     return NextResponse.json(
-      { error: "Manifest oluşturulurken hata oluştu" },
+      { error: "Manifest oluşturulurken bir hata oluştu" },
       { status: 500 }
     );
   }
-}
-
-interface ManifestConfig {
-  appName: string;
-  bundleId: string;
-  version: string;
-  buildNumber: number;
-  downloadUrl: string;
-  fileSize: number;
-}
-
-function generateIOSManifest(config: ManifestConfig): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>items</key>
-    <array>
-        <dict>
-            <key>assets</key>
-            <array>
-                <dict>
-                    <key>kind</key>
-                    <string>software-package</string>
-                    <key>url</key>
-                    <string>${config.downloadUrl}</string>
-                </dict>
-            </array>
-            <key>metadata</key>
-            <dict>
-                <key>bundle-identifier</key>
-                <string>${config.bundleId}</string>
-                <key>bundle-version</key>
-                <string>${config.version}</string>
-                <key>kind</key>
-                <string>software</string>
-                <key>title</key>
-                <string>${config.appName}</string>
-                <key>subtitle</key>
-                <string>v${config.version} (${config.buildNumber})</string>
-            </dict>
-        </dict>
-    </array>
-</dict>
-</plist>`;
 }
