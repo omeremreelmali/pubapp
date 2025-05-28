@@ -87,12 +87,19 @@ export default function NewGroupPage() {
                 Test kullanıcıları için yeni bir grup oluşturun
               </p>
             </div>
-            <Link href="/dashboard/groups">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Geri Dön
-              </Button>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  Ana Sayfa
+                </Button>
+              </Link>
+              <Link href="/dashboard/groups">
+                <Button variant="outline">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Gruplar
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

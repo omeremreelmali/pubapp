@@ -277,7 +277,7 @@ export default function TagsPage() {
               <Link href="/dashboard">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Dashboard
+                  Ana Sayfa
                 </Button>
               </Link>
             </div>

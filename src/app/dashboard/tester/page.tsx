@@ -182,9 +182,16 @@ export default function TesterDashboardPage() {
                 Size atanan test uygulamalarını görüntüleyin ve indirin
               </p>
             </div>
-            <Badge variant="secondary" className="text-sm">
-              Test Kullanıcısı
-            </Badge>
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  Ana Sayfa
+                </Button>
+              </Link>
+              <Badge variant="secondary" className="text-sm">
+                Test Kullanıcısı
+              </Badge>
+            </div>
           </div>
         </div>
       </div>

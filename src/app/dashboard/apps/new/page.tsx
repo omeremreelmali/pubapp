@@ -106,12 +106,19 @@ export default function NewAppPage() {
                 Yeni bir mobil uygulama ekleyin
               </p>
             </div>
-            <Link href="/dashboard/apps">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Geri Dön
-              </Button>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  Ana Sayfa
+                </Button>
+              </Link>
+              <Link href="/dashboard/apps">
+                <Button variant="outline">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Uygulamalar
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

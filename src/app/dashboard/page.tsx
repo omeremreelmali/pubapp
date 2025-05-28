@@ -17,6 +17,7 @@ import {
   Download,
   Plus,
   Tag,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -93,7 +94,10 @@ export default async function DashboardPage() {
                 {user.role}
               </Badge>
               <Link href="/auth/signout">
-                <Button variant="outline">Çıkış Yap</Button>
+                <Button variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Çıkış Yap
+                </Button>
               </Link>
             </div>
           </div>

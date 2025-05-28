@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, UserPlus, Mail } from "lucide-react";
+import { Users, Mail, UserPlus, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { InviteUserDialog } from "@/components/dashboard/invite-user-dialog";
 
@@ -106,7 +106,10 @@ export default async function UsersPage() {
             </div>
             <div className="flex items-center space-x-4">
               <Link href="/dashboard">
-                <Button variant="outline">← Dashboard</Button>
+                <Button variant="outline">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Ana Sayfa
+                </Button>
               </Link>
               <InviteUserDialog />
             </div>

@@ -151,7 +151,7 @@ export default function GroupDetailPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setAvailableApps(data.apps);
+        setAvailableApps(data);
       }
     } catch (error) {
       console.error("Error fetching apps:", error);
@@ -361,6 +361,11 @@ export default function GroupDetailPage() {
               )}
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  Ana Sayfa
+                </Button>
+              </Link>
               <Link href="/dashboard/groups">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />

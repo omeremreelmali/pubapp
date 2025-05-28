@@ -19,7 +19,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, Plus, Search, Settings, Smartphone, Eye } from "lucide-react";
+import {
+  Users,
+  Plus,
+  Search,
+  Settings,
+  Smartphone,
+  Eye,
+  ArrowLeft,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -146,12 +154,20 @@ export default function GroupsPage() {
                 Test kullanıcılarını gruplar halinde yönetin
               </p>
             </div>
-            <Link href="/dashboard/groups/new">
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Yeni Grup
-              </Button>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button variant="outline">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Ana Sayfa
+                </Button>
+              </Link>
+              <Link href="/dashboard/groups/new">
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Yeni Grup
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

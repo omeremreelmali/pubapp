@@ -278,6 +278,11 @@ export default function AppDetailPage() {
               <p className="text-sm text-gray-500">{app.packageName}</p>
             </div>
             <div className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button variant="outline" size="sm">
+                  Ana Sayfa
+                </Button>
+              </Link>
               <Link href="/dashboard/apps">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
