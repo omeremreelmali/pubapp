@@ -36,6 +36,8 @@ import {
   Package,
   Tag,
   Filter,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { DownloadButton } from "@/components/dashboard/download-button";
@@ -167,6 +169,30 @@ export default function AppDetailPage() {
 
   const clearFilters = () => {
     setSelectedTags([]);
+  };
+
+  const handleDeleteVersion = async (versionId: string) => {
+    if (!confirm("Bu versiyonu silmek istediğinizden emin misiniz?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/apps/${slug}/versions/${versionId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Versiyon silinirken hata oluştu");
+        return;
+      }
+
+      toast.success("Versiyon başarıyla silindi");
+      fetchAppData(); // Refresh data
+    } catch (error) {
+      toast.error("Bir hata oluştu");
+    }
   };
 
   const getPlatformBadge = (platform: string) => {
@@ -499,10 +525,27 @@ export default function AppDetailPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <DownloadButton
-                          slug={app.slug}
-                          versionId={version.id}
-                        />
+                        <div className="flex justify-end space-x-2">
+                          <Link
+                            href={`/dashboard/apps/${slug}/versions/${version.id}/edit`}
+                          >
+                            <Button variant="outline" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteVersion(version.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <DownloadButton
+                            slug={app.slug}
+                            versionId={version.id}
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

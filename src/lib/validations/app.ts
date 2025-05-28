@@ -54,6 +54,27 @@ export const updateAppSchema = yup.object({
     .optional(),
 });
 
+export const updateVersionSchema = yup.object({
+  version: yup
+    .string()
+    .matches(
+      /^\d+\.\d+\.\d+$/,
+      "Geçerli bir semantic version giriniz (örn: 1.0.0)"
+    )
+    .optional(),
+  buildNumber: yup
+    .number()
+    .positive("Build numarası pozitif olmalıdır")
+    .integer("Build numarası tam sayı olmalıdır")
+    .optional(),
+  releaseNotes: yup
+    .string()
+    .max(1000, "Sürüm notları en fazla 1000 karakter olabilir")
+    .optional(),
+  tagIds: yup.array().of(yup.string().required()).optional(),
+});
+
 export type CreateAppFormData = yup.InferType<typeof createAppSchema>;
 export type CreateVersionFormData = yup.InferType<typeof createVersionSchema>;
 export type UpdateAppFormData = yup.InferType<typeof updateAppSchema>;
+export type UpdateVersionFormData = yup.InferType<typeof updateVersionSchema>;
