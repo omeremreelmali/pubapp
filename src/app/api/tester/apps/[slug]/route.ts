@@ -66,10 +66,20 @@ export async function GET(
     }
 
     // For TESTER role, check if they have access through groups
+    console.log(
+      "Checking access for user:",
+      user.id,
+      "app:",
+      app.id,
+      "organization:",
+      user.activeOrganization.id
+    );
+
     const hasAccess = await prisma.groupMember.findFirst({
       where: {
         userId: user.id,
         group: {
+          organizationId: user.activeOrganization.id,
           appAccess: {
             some: {
               appId: app.id,
@@ -77,7 +87,20 @@ export async function GET(
           },
         },
       },
+      include: {
+        group: {
+          include: {
+            appAccess: {
+              where: {
+                appId: app.id,
+              },
+            },
+          },
+        },
+      },
     });
+
+    console.log("Access check result:", hasAccess ? "GRANTED" : "DENIED");
 
     if (!hasAccess) {
       return NextResponse.json(

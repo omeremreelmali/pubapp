@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -31,6 +32,7 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { DownloadButton } from "@/components/dashboard/download-button";
+import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher";
 
 interface App {
   id: string;
@@ -65,6 +67,7 @@ interface App {
 }
 
 export default function TesterAppDetailPage() {
+  const { data: session } = useSession();
   const params = useParams();
   const slug = params.slug as string;
 
@@ -77,19 +80,28 @@ export default function TesterAppDetailPage() {
     }
   }, [slug]);
 
+  useEffect(() => {
+    if (session?.user?.activeOrganization && slug) {
+      fetchApp();
+    }
+  }, [session?.user?.activeOrganization?.id, slug]);
+
   const fetchApp = async () => {
     try {
+      setIsLoading(true);
       const response = await fetch(`/api/tester/apps/${slug}`);
       const data = await response.json();
 
       if (!response.ok) {
         toast.error(data.error || "Uygulama yüklenirken hata oluştu");
+        setApp(null);
         return;
       }
 
       setApp(data.app);
     } catch (error) {
       toast.error("Bir hata oluştu");
+      setApp(null);
     } finally {
       setIsLoading(false);
     }
@@ -182,6 +194,9 @@ export default function TesterAppDetailPage() {
               <p className="text-sm text-gray-500">{app.packageName}</p>
             </div>
             <div className="flex items-center space-x-4">
+              <div className="w-64">
+                <OrganizationSwitcher />
+              </div>
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
                   Ana Sayfa

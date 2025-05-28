@@ -104,6 +104,59 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
+      // Her session kontrolünde organizasyon listesini yenile
+      if (token.sub && !user && trigger !== "update") {
+        try {
+          const userWithOrgs = await prisma.user.findUnique({
+            where: { id: token.sub },
+            include: {
+              organizationMemberships: {
+                include: {
+                  organization: true,
+                },
+              },
+            },
+          });
+
+          if (userWithOrgs) {
+            const organizations = userWithOrgs.organizationMemberships.map(
+              (membership) => ({
+                id: membership.id,
+                role: membership.role,
+                organization: {
+                  id: membership.organization.id,
+                  name: membership.organization.name,
+                  slug: membership.organization.slug,
+                },
+              })
+            );
+
+            token.organizations = organizations;
+
+            // Eğer aktif organizasyon yoksa veya artık üye değilse, ilk organizasyonu aktif yap
+            const currentActiveOrgExists = organizations.find(
+              (org) => org.organization.id === token.activeOrganizationId
+            );
+
+            if (!currentActiveOrgExists && organizations.length > 0) {
+              const newActiveOrg = organizations[0];
+              token.activeOrganizationId = newActiveOrg.organization.id;
+              token.activeOrganization = {
+                id: newActiveOrg.organization.id,
+                name: newActiveOrg.organization.name,
+                slug: newActiveOrg.organization.slug,
+                role: newActiveOrg.role,
+              };
+            } else if (organizations.length === 0) {
+              token.activeOrganizationId = null;
+              token.activeOrganization = null;
+            }
+          }
+        } catch (error) {
+          console.error("Error refreshing organizations in JWT:", error);
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
