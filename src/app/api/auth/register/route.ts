@@ -64,9 +64,8 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Davet kodu olmadan kayıt olan kullanıcılar kendi organizasyonlarını oluşturabilir
-      // İlk kullanıcı ADMIN, diğerleri TESTER rolü alır
-      const userCount = await prisma.user.count();
-      userRole = userCount === 0 ? UserRole.ADMIN : UserRole.TESTER;
+      // Bu kullanıcılar ADMIN rolü alır
+      userRole = UserRole.ADMIN;
       // organizationId null kalır, kullanıcı setup sayfasında organizasyon oluşturacak
     }
 
