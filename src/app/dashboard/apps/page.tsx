@@ -1,5 +1,6 @@
-import { requireAuth } from "@/lib/auth-utils";
-import { prisma } from "@/lib/prisma";
+"use client";
+
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -24,51 +25,89 @@ import {
   Download,
   Calendar,
   User,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 
-async function getOrganizationApps(organizationId: string) {
-  const apps = await prisma.app.findMany({
-    where: { organizationId },
-    include: {
-      createdBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      versions: {
-        select: {
-          id: true,
-          version: true,
-          buildNumber: true,
-          createdAt: true,
-          downloadCount: true,
-        },
-        orderBy: { createdAt: "desc" },
-        take: 1,
-      },
-      _count: {
-        select: {
-          versions: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return apps;
+interface AppData {
+  id: string;
+  name: string;
+  slug: string;
+  packageName: string;
+  platform: string;
+  description?: string;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  versions: {
+    id: string;
+    version: string;
+    buildNumber: number;
+    createdAt: string;
+    downloadCount: number;
+  }[];
+  _count: {
+    versions: number;
+  };
 }
 
-export default async function AppsPage() {
-  const user = await requireAuth();
+export default function AppsPage() {
+  const { data: session } = useSession();
+  const [apps, setApps] = useState<AppData[]>([]);
+  const [filteredApps, setFilteredApps] = useState<AppData[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [platformFilter, setPlatformFilter] = useState("all");
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!user.organizationId) {
-    return <div>Organizasyon bulunamadı</div>;
-  }
+  useEffect(() => {
+    fetchApps();
+  }, []);
 
-  const apps = await getOrganizationApps(user.organizationId);
+  useEffect(() => {
+    filterApps();
+  }, [apps, searchTerm, platformFilter]);
+
+  const fetchApps = async () => {
+    try {
+      const response = await fetch("/api/apps");
+      const data = await response.json();
+
+      if (response.ok) {
+        setApps(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching apps:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filterApps = () => {
+    let filtered = apps;
+
+    // Platform filtresi
+    if (platformFilter !== "all") {
+      filtered = filtered.filter((app) => app.platform === platformFilter);
+    }
+
+    // Arama filtresi
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (app) =>
+          app.name.toLowerCase().includes(searchLower) ||
+          app.packageName.toLowerCase().includes(searchLower) ||
+          (app.description &&
+            app.description.toLowerCase().includes(searchLower))
+      );
+    }
+
+    setFilteredApps(filtered);
+  };
 
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
@@ -82,13 +121,28 @@ export default async function AppsPage() {
     );
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat("tr-TR", {
       year: "numeric",
       month: "short",
       day: "numeric",
-    }).format(date);
+    }).format(new Date(dateString));
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Uygulamalar yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session?.user) {
+    return <div>Giriş yapmanız gerekiyor</div>;
+  }
 
   const getTotalDownloads = (app: any) => {
     return app.versions.reduce(
@@ -116,7 +170,8 @@ export default async function AppsPage() {
               <Link href="/dashboard">
                 <Button variant="outline">← Dashboard</Button>
               </Link>
-              {(user.role === "ADMIN" || user.role === "EDITOR") && (
+              {(session?.user?.role === "ADMIN" ||
+                session?.user?.role === "EDITOR") && (
                 <Link href="/dashboard/apps/new">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -137,10 +192,15 @@ export default async function AppsPage() {
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input placeholder="Uygulama ara..." className="pl-10" />
+                  <Input
+                    placeholder="Uygulama ara..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
-              <Select defaultValue="all">
+              <Select value={platformFilter} onValueChange={setPlatformFilter}>
                 <SelectTrigger className="w-full md:w-48">
                   <SelectValue placeholder="Platform" />
                 </SelectTrigger>
@@ -159,12 +219,20 @@ export default async function AppsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Toplam Uygulama
+                {searchTerm || platformFilter !== "all"
+                  ? "Filtrelenmiş"
+                  : "Toplam"}{" "}
+                Uygulama
               </CardTitle>
               <Smartphone className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{apps.length}</div>
+              <div className="text-2xl font-bold">{filteredApps.length}</div>
+              {(searchTerm || platformFilter !== "all") && (
+                <p className="text-xs text-muted-foreground">
+                  Toplam: {apps.length}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -175,8 +243,17 @@ export default async function AppsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {apps.filter((app) => app.platform === "ANDROID").length}
+                {
+                  filteredApps.filter((app) => app.platform === "ANDROID")
+                    .length
+                }
               </div>
+              {(searchTerm || platformFilter !== "all") && (
+                <p className="text-xs text-muted-foreground">
+                  Toplam:{" "}
+                  {apps.filter((app) => app.platform === "ANDROID").length}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -187,8 +264,13 @@ export default async function AppsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {apps.filter((app) => app.platform === "IOS").length}
+                {filteredApps.filter((app) => app.platform === "IOS").length}
               </div>
+              {(searchTerm || platformFilter !== "all") && (
+                <p className="text-xs text-muted-foreground">
+                  Toplam: {apps.filter((app) => app.platform === "IOS").length}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -201,8 +283,17 @@ export default async function AppsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {apps.reduce((total, app) => total + app._count.versions, 0)}
+                {filteredApps.reduce(
+                  (total, app) => total + app._count.versions,
+                  0
+                )}
               </div>
+              {(searchTerm || platformFilter !== "all") && (
+                <p className="text-xs text-muted-foreground">
+                  Toplam:{" "}
+                  {apps.reduce((total, app) => total + app._count.versions, 0)}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -218,7 +309,8 @@ export default async function AppsPage() {
               <p className="text-gray-500 text-center mb-4">
                 İlk uygulamanızı oluşturarak başlayın
               </p>
-              {(user.role === "ADMIN" || user.role === "EDITOR") && (
+              {(session?.user?.role === "ADMIN" ||
+                session?.user?.role === "EDITOR") && (
                 <Link href="/dashboard/apps/new">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -228,9 +320,31 @@ export default async function AppsPage() {
               )}
             </CardContent>
           </Card>
+        ) : filteredApps.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Search className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Arama sonucu bulunamadı
+              </h3>
+              <p className="text-gray-500 text-center mb-4">
+                "{searchTerm}" araması veya seçilen filtreler için sonuç
+                bulunamadı
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("");
+                  setPlatformFilter("all");
+                }}
+              >
+                Filtreleri Temizle
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {apps.map((app) => (
+            {filteredApps.map((app) => (
               <Card key={app.id} className="hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex items-start justify-between">

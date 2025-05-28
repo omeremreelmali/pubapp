@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ apps });
+    return NextResponse.json(apps);
   } catch (error: any) {
     console.error("Get apps error:", error);
     return NextResponse.json({ error: "Bir hata oluştu" }, { status: 500 });
