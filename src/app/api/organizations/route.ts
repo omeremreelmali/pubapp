@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-utils";
 import { organizationCreateSchema } from "@/lib/validations/auth";
+import { createDefaultTags } from "@/lib/seed-tags";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,24 +29,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create organization
-    const organization = await prisma.organization.create({
-      data: {
-        name: validatedData.name,
-        slug,
-        description: validatedData.description,
-      },
+    // Create organization and default tags in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // Create organization
+      const organization = await tx.organization.create({
+        data: {
+          name: validatedData.name,
+          slug,
+          description: validatedData.description,
+        },
+      });
+
+      // Update user to be part of this organization
+      await tx.user.update({
+        where: { id: user.id },
+        data: { organizationId: organization.id },
+      });
+
+      return organization;
     });
 
-    // Update user to be part of this organization
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { organizationId: organization.id },
-    });
+    // Create default tags after transaction
+    try {
+      await createDefaultTags(result.id);
+    } catch (tagError) {
+      console.error("Error creating default tags:", tagError);
+      // Don't fail the organization creation if tag creation fails
+    }
 
     return NextResponse.json({
       message: "Organizasyon başarıyla oluşturuldu",
-      organization,
+      organization: result,
     });
   } catch (error: any) {
     console.error("Create organization error:", error);

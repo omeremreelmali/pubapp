@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
-import { requireAuth } from "@/lib/auth-utils";
-import { prisma } from "@/lib/prisma";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -19,6 +20,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Smartphone,
   ArrowLeft,
   Plus,
@@ -26,66 +34,140 @@ import {
   Calendar,
   User,
   Package,
+  Tag,
+  Filter,
 } from "lucide-react";
 import Link from "next/link";
 import { DownloadButton } from "@/components/dashboard/download-button";
+import { toast } from "sonner";
 
-async function getAppBySlug(slug: string, organizationId: string) {
-  const app = await prisma.app.findFirst({
-    where: {
-      slug,
-      organizationId,
-    },
-    include: {
-      createdBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      versions: {
-        include: {
-          uploadedBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      _count: {
-        select: {
-          versions: true,
-        },
-      },
-    },
-  });
-
-  return app;
+interface TagData {
+  id: string;
+  name: string;
+  color: string;
 }
 
-interface PageProps {
-  params: Promise<{
-    slug: string;
+interface VersionData {
+  id: string;
+  version: string;
+  buildNumber: number;
+  releaseNotes?: string;
+  fileName: string;
+  originalFileName: string;
+  fileSize: number;
+  downloadCount: number;
+  createdAt: string;
+  uploadedBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  tags: Array<{
+    tag: TagData;
   }>;
 }
 
-export default async function AppDetailPage({ params }: PageProps) {
-  const { slug } = await params;
-  const user = await requireAuth();
+interface AppData {
+  id: string;
+  name: string;
+  slug: string;
+  packageName: string;
+  platform: string;
+  description?: string;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  versions: VersionData[];
+  _count: {
+    versions: number;
+  };
+}
 
-  if (!user.organizationId) {
-    return <div>Organizasyon bulunamadı</div>;
-  }
+export default function AppDetailPage() {
+  const params = useParams();
+  const slug = params.slug as string;
 
-  const app = await getAppBySlug(slug, user.organizationId);
+  const [app, setApp] = useState<AppData | null>(null);
+  const [tags, setTags] = useState<TagData[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [filteredVersions, setFilteredVersions] = useState<VersionData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!app) {
-    notFound();
-  }
+  useEffect(() => {
+    fetchAppData();
+    fetchTags();
+  }, [slug]);
+
+  useEffect(() => {
+    if (app) {
+      filterVersions();
+    }
+  }, [app, selectedTags]);
+
+  const fetchAppData = async () => {
+    try {
+      const response = await fetch(`/api/apps/${slug}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Uygulama yüklenirken hata oluştu");
+        return;
+      }
+
+      setApp(data.app);
+    } catch (error) {
+      toast.error("Bir hata oluştu");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch("/api/tags");
+      const data = await response.json();
+
+      if (response.ok) {
+        setTags(data);
+      }
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
+
+  const filterVersions = () => {
+    if (!app) return;
+
+    if (selectedTags.length === 0) {
+      setFilteredVersions(app.versions);
+      return;
+    }
+
+    const filtered = app.versions.filter((version) =>
+      version.tags.some((versionTag) =>
+        selectedTags.includes(versionTag.tag.id)
+      )
+    );
+
+    setFilteredVersions(filtered);
+  };
+
+  const handleTagFilter = (tagId: string) => {
+    setSelectedTags((prev) => {
+      if (prev.includes(tagId)) {
+        return prev.filter((id) => id !== tagId);
+      } else {
+        return [...prev, tagId];
+      }
+    });
+  };
+
+  const clearFilters = () => {
+    setSelectedTags([]);
+  };
 
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
@@ -99,14 +181,14 @@ export default async function AppDetailPage({ params }: PageProps) {
     );
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string) => {
     return new Intl.DateTimeFormat("tr-TR", {
       year: "numeric",
       month: "long",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    }).format(date);
+    }).format(new Date(date));
   };
 
   const formatFileSize = (bytes: number) => {
@@ -117,11 +199,41 @@ export default async function AppDetailPage({ params }: PageProps) {
   };
 
   const getTotalDownloads = () => {
+    if (!app) return 0;
     return app.versions.reduce(
       (total, version) => total + version.downloadCount,
       0
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Uygulama yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!app) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Uygulama bulunamadı
+          </h2>
+          <p className="text-gray-600 mb-4">
+            Aradığınız uygulama mevcut değil veya erişim yetkiniz yok.
+          </p>
+          <Link href="/dashboard/apps">
+            <Button>Uygulamalara Dön</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -146,14 +258,12 @@ export default async function AppDetailPage({ params }: PageProps) {
                   Uygulamalar
                 </Button>
               </Link>
-              {(user.role === "ADMIN" || user.role === "EDITOR") && (
-                <Link href={`/dashboard/apps/${app.slug}/versions/new`}>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Yeni Versiyon
-                  </Button>
-                </Link>
-              )}
+              <Link href={`/dashboard/apps/${app.slug}/versions/new`}>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Yeni Versiyon
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -209,81 +319,98 @@ export default async function AppDetailPage({ params }: PageProps) {
           </div>
 
           {/* Stats */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Toplam Versiyon
-                </CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+              <CardHeader>
+                <CardTitle className="text-lg">İstatistikler</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{app._count.versions}</div>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Toplam Versiyon</span>
+                  <Badge variant="secondary">{app._count.versions}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Toplam İndirme</span>
+                  <Badge variant="secondary">{getTotalDownloads()}</Badge>
+                </div>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Toplam İndirme
-                </CardTitle>
-                <Download className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{getTotalDownloads()}</div>
-              </CardContent>
-            </Card>
-
-            {app.versions[0] && (
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Son Versiyon
-                  </CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    v{app.versions[0].version}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDate(app.versions[0].createdAt)}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
+
+        {/* Tag Filters */}
+        {tags.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Filter className="mr-2 h-5 w-5" />
+                Tag Filtreleri
+              </CardTitle>
+              <CardDescription>
+                Versiyonları tag'lere göre filtreleyin
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {tags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => handleTagFilter(tag.id)}
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      selectedTags.includes(tag.id)
+                        ? "text-white"
+                        : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                    }`}
+                    style={{
+                      backgroundColor: selectedTags.includes(tag.id)
+                        ? tag.color
+                        : undefined,
+                    }}
+                  >
+                    <Tag className="mr-1 h-3 w-3" />
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+              {selectedTags.length > 0 && (
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-600">
+                    {filteredVersions.length} versiyon gösteriliyor
+                  </p>
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    Filtreleri Temizle
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Versions */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Versiyonlar</CardTitle>
-                <CardDescription>Uygulamanın tüm versiyonları</CardDescription>
-              </div>
-              {(user.role === "ADMIN" || user.role === "EDITOR") && (
-                <Link href={`/dashboard/apps/${app.slug}/versions/new`}>
-                  <Button size="sm">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Yeni Versiyon
-                  </Button>
-                </Link>
-              )}
-            </div>
+            <CardTitle>Versiyonlar</CardTitle>
+            <CardDescription>
+              Uygulamanın tüm versiyonları ve indirme linkleri
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {app.versions.length === 0 ? (
+            {filteredVersions.length === 0 ? (
               <div className="text-center py-8">
                 <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Henüz versiyon yok
+                  {selectedTags.length > 0
+                    ? "Seçilen tag'lere uygun versiyon bulunamadı"
+                    : "Henüz versiyon yok"}
                 </h3>
                 <p className="text-gray-500 mb-4">
-                  Bu uygulama için henüz versiyon yüklenmemiş
+                  {selectedTags.length > 0
+                    ? "Farklı tag'ler seçerek tekrar deneyin"
+                    : "Bu uygulama için henüz hiçbir versiyon yüklenmemiş"}
                 </p>
-                {(user.role === "ADMIN" || user.role === "EDITOR") && (
+                {selectedTags.length > 0 ? (
+                  <Button onClick={clearFilters}>Filtreleri Temizle</Button>
+                ) : (
                   <Link href={`/dashboard/apps/${app.slug}/versions/new`}>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
@@ -297,35 +424,85 @@ export default async function AppDetailPage({ params }: PageProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Versiyon</TableHead>
-                    <TableHead>Build</TableHead>
-                    <TableHead>Dosya Boyutu</TableHead>
-                    <TableHead>İndirme</TableHead>
+                    <TableHead>Tag'ler</TableHead>
+                    <TableHead>Dosya</TableHead>
                     <TableHead>Yükleyen</TableHead>
                     <TableHead>Tarih</TableHead>
-                    <TableHead>İşlemler</TableHead>
+                    <TableHead>İndirme</TableHead>
+                    <TableHead className="text-right">İşlemler</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {app.versions.map((version) => (
+                  {filteredVersions.map((version) => (
                     <TableRow key={version.id}>
-                      <TableCell className="font-medium">
-                        v{version.version}
-                      </TableCell>
-                      <TableCell>{version.buildNumber}</TableCell>
-                      <TableCell>{formatFileSize(version.fileSize)}</TableCell>
-                      <TableCell>{version.downloadCount}</TableCell>
-                      <TableCell>{version.uploadedBy.name}</TableCell>
-                      <TableCell>{formatDate(version.createdAt)}</TableCell>
                       <TableCell>
-                        <div className="flex space-x-2">
-                          <DownloadButton
-                            versionId={version.id}
-                            slug={app.slug}
-                          />
-                          <Button variant="outline" size="sm">
-                            Detay
-                          </Button>
+                        <div>
+                          <div className="font-medium">v{version.version}</div>
+                          <div className="text-sm text-gray-500">
+                            Build {version.buildNumber}
+                          </div>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {version.tags.map((versionTag) => (
+                            <Badge
+                              key={versionTag.tag.id}
+                              style={{
+                                backgroundColor: versionTag.tag.color,
+                                color: "white",
+                              }}
+                              className="text-xs"
+                            >
+                              {versionTag.tag.name}
+                            </Badge>
+                          ))}
+                          {version.tags.length === 0 && (
+                            <span className="text-sm text-gray-400">
+                              Tag yok
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium text-sm">
+                            {version.originalFileName}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {formatFileSize(version.fileSize)}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <User className="mr-2 h-4 w-4 text-gray-400" />
+                          <div>
+                            <div className="font-medium text-sm">
+                              {version.uploadedBy.name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {version.uploadedBy.email}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Calendar className="mr-1 h-4 w-4" />
+                          {formatDate(version.createdAt)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {version.downloadCount} indirme
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DownloadButton
+                          slug={app.slug}
+                          versionId={version.id}
+                        />
                       </TableCell>
                     </TableRow>
                   ))}

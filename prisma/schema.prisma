@@ -57,6 +57,36 @@ enum UserRole {
   TESTER
 }
 
+// Tag modeli (Versiyon etiketleri için)
+model Tag {
+  id             String       @id @default(cuid())
+  name           String
+  color          String       @default("#3B82F6") // Hex color code
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Tag kullanımları
+  versionTags VersionTag[]
+
+  @@unique([name, organizationId])
+  @@map("tags")
+}
+
+// Versiyon-Tag ilişkisi (Many-to-Many)
+model VersionTag {
+  id        String     @id @default(cuid())
+  versionId String
+  tagId     String
+  version   AppVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  tag       Tag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+
+  @@unique([versionId, tagId])
+  @@map("version_tags")
+}
+
 // Organizasyon modeli
 model Organization {
   id          String   @id @default(cuid())
@@ -72,6 +102,7 @@ model Organization {
   apps         App[]
   groups       Group[]
   invitations  OrganizationInvitation[]
+  tags         Tag[]
 
   @@map("organizations")
 }
@@ -212,6 +243,9 @@ model AppVersion {
 
   // İndirme linkleri
   downloadLinks DownloadLink[]
+
+  // Versiyon etiketleri
+  tags VersionTag[]
 
   @@unique([version, appId])
   @@unique([buildNumber, appId])

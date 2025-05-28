@@ -41,6 +41,7 @@ export async function POST(
     const version = formData.get("version") as string;
     const buildNumber = formData.get("buildNumber") as string;
     const releaseNotes = formData.get("releaseNotes") as string;
+    const tagIds = formData.get("tagIds") as string; // JSON string of tag IDs
 
     if (!file) {
       return NextResponse.json({ error: "Dosya gereklidir" }, { status: 400 });
@@ -52,6 +53,42 @@ export async function POST(
       buildNumber: parseInt(buildNumber),
       releaseNotes,
     });
+
+    // Parse and validate tag IDs
+    let parsedTagIds: string[] = [];
+    if (tagIds) {
+      try {
+        parsedTagIds = JSON.parse(tagIds);
+        if (!Array.isArray(parsedTagIds)) {
+          return NextResponse.json(
+            { error: "Tag IDs geçerli bir array olmalı" },
+            { status: 400 }
+          );
+        }
+      } catch (error) {
+        return NextResponse.json(
+          { error: "Tag IDs geçerli JSON formatında olmalı" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate that all tag IDs belong to the organization
+    if (parsedTagIds.length > 0) {
+      const validTags = await prisma.tag.findMany({
+        where: {
+          id: { in: parsedTagIds },
+          organizationId: user.organizationId,
+        },
+      });
+
+      if (validTags.length !== parsedTagIds.length) {
+        return NextResponse.json(
+          { error: "Geçersiz tag ID'leri" },
+          { status: 400 }
+        );
+      }
+    }
 
     // Validate file
     const fileValidation = validateFile(
@@ -107,7 +144,7 @@ export async function POST(
     // Upload file to MinIO
     await uploadFile(fileName, fileBuffer, file.type);
 
-    // Create version record
+    // Create version record with tags
     const appVersion = await prisma.appVersion.create({
       data: {
         version: validatedData.version,
@@ -119,6 +156,11 @@ export async function POST(
         mimeType: file.type,
         appId: app.id,
         uploadedById: user.id,
+        tags: {
+          create: parsedTagIds.map((tagId) => ({
+            tagId,
+          })),
+        },
       },
       include: {
         uploadedBy: {
@@ -134,6 +176,11 @@ export async function POST(
             name: true,
             slug: true,
             platform: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
           },
         },
       },
@@ -161,6 +208,8 @@ export async function GET(
   try {
     const { slug } = await params;
     const user = await requireEditorOrAdmin();
+    const { searchParams } = new URL(request.url);
+    const tagFilter = searchParams.get("tags"); // Comma-separated tag IDs
 
     if (!user.organizationId) {
       return NextResponse.json(
@@ -184,15 +233,34 @@ export async function GET(
       );
     }
 
-    // Get versions
+    // Build where clause for tag filtering
+    let whereClause: any = { appId: app.id };
+
+    if (tagFilter) {
+      const tagIds = tagFilter.split(",").filter(Boolean);
+      if (tagIds.length > 0) {
+        whereClause.tags = {
+          some: {
+            tagId: { in: tagIds },
+          },
+        };
+      }
+    }
+
+    // Get versions with tags
     const versions = await prisma.appVersion.findMany({
-      where: { appId: app.id },
+      where: whereClause,
       include: {
         uploadedBy: {
           select: {
             id: true,
             name: true,
             email: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
           },
         },
       },

@@ -10,7 +10,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Building2, Smartphone, Download, Plus } from "lucide-react";
+import {
+  Users,
+  Building2,
+  Smartphone,
+  Download,
+  Plus,
+  Tag,
+} from "lucide-react";
 import Link from "next/link";
 
 async function getDashboardStats(
@@ -180,6 +187,17 @@ export default async function DashboardPage() {
                     <div className="text-center">
                       <Users className="h-8 w-8 mx-auto mb-2 text-indigo-600" />
                       <p className="text-sm font-medium">Test Grupları</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/dashboard/tags">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardContent className="flex items-center justify-center p-6">
+                    <div className="text-center">
+                      <Tag className="h-8 w-8 mx-auto mb-2 text-pink-600" />
+                      <p className="text-sm font-medium">Tag Yönetimi</p>
                     </div>
                   </CardContent>
                 </Card>

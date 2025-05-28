@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -15,7 +16,15 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Upload, ArrowLeft, FileText, Smartphone } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  ArrowLeft,
+  FileText,
+  Smartphone,
+  Tag,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -24,6 +33,12 @@ import {
   ALLOWED_EXTENSIONS,
 } from "@/lib/file-utils";
 
+interface TagData {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export default function NewVersionPage() {
   const [formData, setFormData] = useState({
     version: "",
@@ -31,6 +46,8 @@ export default function NewVersionPage() {
     releaseNotes: "",
   });
   const [file, setFile] = useState<File | null>(null);
+  const [tags, setTags] = useState<TagData[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -40,6 +57,23 @@ export default function NewVersionPage() {
   const params = useParams();
   const slug = params.slug as string;
 
+  useEffect(() => {
+    fetchTags();
+  }, []);
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch("/api/tags");
+      const data = await response.json();
+
+      if (response.ok) {
+        setTags(data);
+      }
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+    }
+  };
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -47,6 +81,16 @@ export default function NewVersionPage() {
       ...prev,
       [e.target.name]: e.target.value,
     }));
+  };
+
+  const handleTagToggle = (tagId: string) => {
+    setSelectedTags((prev) => {
+      if (prev.includes(tagId)) {
+        return prev.filter((id) => id !== tagId);
+      } else {
+        return [...prev, tagId];
+      }
+    });
   };
 
   const handleFileSelect = useCallback((selectedFile: File) => {
@@ -112,6 +156,7 @@ export default function NewVersionPage() {
       formDataToSend.append("version", formData.version);
       formDataToSend.append("buildNumber", formData.buildNumber);
       formDataToSend.append("releaseNotes", formData.releaseNotes);
+      formDataToSend.append("tagIds", JSON.stringify(selectedTags));
 
       // Simulate upload progress
       const progressInterval = setInterval(() => {
@@ -201,42 +246,43 @@ export default function NewVersionPage() {
                   onDragOver={handleDrag}
                   onDrop={handleDrop}
                 >
-                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-lg font-medium text-gray-900 mb-2">
-                    Dosyayı buraya sürükleyin
-                  </p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    veya dosya seçmek için tıklayın
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Dosya yükleyin
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    Dosyayı sürükleyip bırakın veya seçmek için tıklayın
                   </p>
                   <input
                     type="file"
                     onChange={handleFileChange}
-                    accept=".apk,.aab,.ipa"
+                    accept={[
+                      ...ALLOWED_EXTENSIONS.ANDROID,
+                      ...ALLOWED_EXTENSIONS.IOS,
+                    ].join(",")}
                     className="hidden"
                     id="file-upload"
-                    disabled={isLoading}
                   />
                   <label htmlFor="file-upload">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isLoading}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Dosya Seç
+                    <Button type="button" asChild>
+                      <span>Dosya Seç</span>
                     </Button>
                   </label>
-                  <p className="text-xs text-gray-500 mt-4">
-                    Desteklenen formatlar: APK, AAB, IPA (Max: 100MB)
+                  <p className="text-xs text-gray-400 mt-2">
+                    Desteklenen formatlar:{" "}
+                    {[
+                      ...ALLOWED_EXTENSIONS.ANDROID,
+                      ...ALLOWED_EXTENSIONS.IOS,
+                    ].join(", ")}
                   </p>
                 </div>
               ) : (
                 <div className="border rounded-lg p-4 bg-gray-50">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Smartphone className="h-8 w-8 text-blue-600" />
+                    <div className="flex items-center">
+                      <FileText className="h-8 w-8 text-blue-600 mr-3" />
                       <div>
-                        <p className="font-medium text-gray-900">{file.name}</p>
+                        <p className="font-medium">{file.name}</p>
                         <p className="text-sm text-gray-500">
                           {formatFileSize(file.size)}
                         </p>
@@ -247,21 +293,10 @@ export default function NewVersionPage() {
                       variant="outline"
                       size="sm"
                       onClick={removeFile}
-                      disabled={isLoading}
                     >
-                      Kaldır
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-              )}
-
-              {uploadProgress > 0 && (
-                <div className="mt-4">
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Yükleniyor...</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <Progress value={uploadProgress} className="h-2" />
                 </div>
               )}
             </CardContent>
@@ -271,110 +306,161 @@ export default function NewVersionPage() {
           <Card>
             <CardHeader>
               <CardTitle>Versiyon Bilgileri</CardTitle>
-              <CardDescription>Versiyon detaylarını girin</CardDescription>
+              <CardDescription>
+                Versiyon numarası ve build bilgilerini girin
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="version">Versiyon Numarası *</Label>
+                <div>
+                  <Label htmlFor="version">Versiyon Numarası</Label>
                   <Input
                     id="version"
                     name="version"
-                    type="text"
-                    placeholder="1.0.0"
                     value={formData.version}
                     onChange={handleChange}
+                    placeholder="1.0.0"
                     required
-                    disabled={isLoading}
                   />
-                  <p className="text-xs text-gray-500">
-                    Semantic versioning (örn: 1.0.0)
-                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="buildNumber">Build Numarası *</Label>
+                <div>
+                  <Label htmlFor="buildNumber">Build Numarası</Label>
                   <Input
                     id="buildNumber"
                     name="buildNumber"
                     type="number"
-                    placeholder="1"
                     value={formData.buildNumber}
                     onChange={handleChange}
+                    placeholder="1"
                     required
-                    disabled={isLoading}
                   />
-                  <p className="text-xs text-gray-500">
-                    Benzersiz build numarası
-                  </p>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="releaseNotes">Sürüm Notları</Label>
+              <div>
+                <Label htmlFor="releaseNotes">Sürüm Notları (Opsiyonel)</Label>
                 <Textarea
                   id="releaseNotes"
                   name="releaseNotes"
-                  placeholder="Bu versiyonda neler değişti..."
                   value={formData.releaseNotes}
                   onChange={handleChange}
-                  disabled={isLoading}
+                  placeholder="Bu versiyonda yapılan değişiklikler..."
                   rows={4}
                 />
-                <p className="text-xs text-gray-500">
-                  Opsiyonel: Bu versiyondaki değişiklikleri açıklayın
-                </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Submit */}
+          {/* Tags */}
+          {tags.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Tag className="mr-2 h-5 w-5" />
+                  Tag'ler
+                </CardTitle>
+                <CardDescription>
+                  Bu versiyon için uygun tag'leri seçin (opsiyonel)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    {tags.map((tag) => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => handleTagToggle(tag.id)}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                          selectedTags.includes(tag.id)
+                            ? "text-white"
+                            : "text-gray-700 bg-gray-100 hover:bg-gray-200"
+                        }`}
+                        style={{
+                          backgroundColor: selectedTags.includes(tag.id)
+                            ? tag.color
+                            : undefined,
+                        }}
+                      >
+                        <Tag className="mr-1 h-3 w-3" />
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  {selectedTags.length > 0 && (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Seçilen tag'ler:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedTags.map((tagId) => {
+                          const tag = tags.find((t) => t.id === tagId);
+                          if (!tag) return null;
+                          return (
+                            <Badge
+                              key={tag.id}
+                              style={{
+                                backgroundColor: tag.color,
+                                color: "white",
+                              }}
+                            >
+                              {tag.name}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Upload Progress */}
+          {isLoading && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Yükleniyor...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <Progress value={uploadProgress} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Submit Button */}
           <div className="flex justify-end space-x-4">
             <Link href={`/dashboard/apps/${slug}`}>
-              <Button type="button" variant="outline" disabled={isLoading}>
+              <Button type="button" variant="outline">
                 İptal
               </Button>
             </Link>
             <Button type="submit" disabled={isLoading || !file}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Versiyonu Yükle
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Yükleniyor...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Versiyonu Yükle
+                </>
+              )}
             </Button>
           </div>
         </form>
-
-        {/* Info Card */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-lg">📋 Yükleme Rehberi</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-gray-600">
-            <div>
-              <strong>Dosya Formatları:</strong>
-              <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Android: APK veya AAB dosyaları</li>
-                <li>iOS: IPA dosyaları</li>
-              </ul>
-            </div>
-            <div>
-              <strong>Versiyon Numarası:</strong> Semantic versioning kullanın
-              (örn: 1.0.0, 2.1.3)
-            </div>
-            <div>
-              <strong>Build Numarası:</strong> Her build için benzersiz bir sayı
-              olmalıdır
-            </div>
-            <div>
-              <strong>Dosya Boyutu:</strong> Maksimum 100MB dosya
-              yükleyebilirsiniz
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
