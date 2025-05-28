@@ -434,10 +434,8 @@ export default function AppDetailPage() {
                     ? "Seçilen tag'lere uygun versiyon bulunamadı"
                     : "Henüz versiyon yok"}
                 </h3>
-                <p className="text-gray-500 mb-4">
-                  {selectedTags.length > 0
-                    ? "Farklı tag'ler seçerek tekrar deneyin"
-                    : "Bu uygulama için henüz hiçbir versiyon yüklenmemiş"}
+                <p className="text-gray-500 text-center mb-4">
+                  İlk versiyonunuzu yükleyerek başlayın
                 </p>
                 {selectedTags.length > 0 ? (
                   <Button onClick={clearFilters}>Filtreleri Temizle</Button>

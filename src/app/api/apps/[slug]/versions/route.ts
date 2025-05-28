@@ -234,7 +234,7 @@ export async function GET(
     }
 
     // Build where clause for tag filtering
-    let whereClause: any = { appId: app.id };
+    const whereClause: any = { appId: app.id };
 
     if (tagFilter) {
       const tagIds = tagFilter.split(",").filter(Boolean);

@@ -175,8 +175,8 @@ export default function AppsPage() {
                   Ana Sayfa
                 </Button>
               </Link>
-              {(session?.user?.role === "ADMIN" ||
-                session?.user?.role === "EDITOR") && (
+              {(session?.user?.activeOrganization?.role === "ADMIN" ||
+                session?.user?.activeOrganization?.role === "EDITOR") && (
                 <Link href="/dashboard/apps/new">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -320,8 +320,8 @@ export default function AppsPage() {
               <p className="text-gray-500 text-center mb-4">
                 İlk uygulamanızı oluşturarak başlayın
               </p>
-              {(session?.user?.role === "ADMIN" ||
-                session?.user?.role === "EDITOR") && (
+              {(session?.user?.activeOrganization?.role === "ADMIN" ||
+                session?.user?.activeOrganization?.role === "EDITOR") && (
                 <Link href="/dashboard/apps/new">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />

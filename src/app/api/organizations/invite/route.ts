@@ -8,9 +8,9 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -18,33 +18,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = await inviteUserSchema.validate(body);
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
+    // Check if user already exists and is member of this organization
+    const existingMember = await prisma.organizationMember.findFirst({
+      where: {
+        organizationId: user.activeOrganization.id,
+        user: { email: validatedData.email },
+      },
     });
 
-    if (existingUser) {
+    if (existingMember) {
       return NextResponse.json(
-        { error: "Bu email adresi ile zaten bir kullanıcı kayıtlı" },
+        { error: "Bu kullanıcı zaten organizasyon üyesi" },
         { status: 400 }
       );
     }
 
     // Check if invitation already exists
-    const existingInvitation = await prisma.organizationInvitation.findUnique({
+    const existingInvitation = await prisma.organizationInvitation.findFirst({
       where: {
-        email_organizationId: {
-          email: validatedData.email,
-          organizationId: user.organizationId,
-        },
+        email: validatedData.email,
+        organizationId: user.activeOrganization.id,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
       },
     });
 
-    if (
-      existingInvitation &&
-      !existingInvitation.usedAt &&
-      existingInvitation.expiresAt > new Date()
-    ) {
+    if (existingInvitation) {
       return NextResponse.json(
         { error: "Bu kullanıcıya zaten aktif bir davet gönderilmiş" },
         { status: 400 }
@@ -56,7 +55,7 @@ export async function POST(request: NextRequest) {
       data: {
         email: validatedData.email,
         role: validatedData.role as UserRole,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
       include: {
@@ -93,16 +92,16 @@ export async function GET() {
   try {
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
     const invitations = await prisma.organizationInvitation.findMany({
       where: {
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
         usedAt: null,
         expiresAt: { gt: new Date() },
       },
