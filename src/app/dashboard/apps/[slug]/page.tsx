@@ -38,6 +38,8 @@ import {
   Filter,
   Edit,
   Trash2,
+  Search,
+  Settings,
 } from "lucide-react";
 import Link from "next/link";
 import { DownloadButton } from "@/components/dashboard/download-button";
@@ -193,6 +195,45 @@ export default function AppDetailPage() {
     } catch (error) {
       toast.error("Bir hata oluştu");
     }
+  };
+
+  const handleAnalyzeIPA = async (versionId: string) => {
+    try {
+      const response = await fetch(
+        `/api/apps/${slug}/versions/${versionId}/analyze`,
+        {
+          method: "POST",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "IPA analizi başarısız");
+        return;
+      }
+
+      toast.success("IPA analizi tamamlandı!");
+
+      // Show analysis results
+      const info = data.ipaInfo;
+      toast.success(
+        `📱 ${info.appName}\n🔧 ${info.distributionType}\n📋 ${
+          info.bundleId
+        }\n${info.teamId ? `👥 ${info.teamId}` : ""}`
+      );
+
+      fetchAppData(); // Refresh data
+    } catch (error) {
+      toast.error("Bir hata oluştu");
+    }
+  };
+
+  const handleDownloadProfile = (versionId: string) => {
+    window.open(
+      `/api/apps/${slug}/versions/${versionId}/auto-profile`,
+      "_blank"
+    );
   };
 
   const getPlatformBadge = (platform: string) => {
@@ -529,6 +570,31 @@ export default function AppDetailPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end space-x-2">
+                          {/* iOS specific buttons */}
+                          {app.platform === "IOS" && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAnalyzeIPA(version.id)}
+                                title="IPA Analiz Et"
+                              >
+                                <Search className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() =>
+                                  handleDownloadProfile(version.id)
+                                }
+                                title="Configuration Profile İndir"
+                                className="bg-blue-50 hover:bg-blue-100"
+                              >
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+
                           <Link
                             href={`/dashboard/apps/${slug}/versions/${version.id}/edit`}
                           >

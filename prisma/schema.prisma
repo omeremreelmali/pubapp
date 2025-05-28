@@ -219,6 +219,15 @@ model App {
   packageName    String       @unique
   platform       Platform
   description    String?
+  
+  // iOS Distribution alanları
+  iosDistributionType String?  // "adhoc", "development", "enterprise", "appstore"
+  iosProvisioningProfile String? @db.Text // Base64 encoded .mobileprovision
+  iosTeamId      String?      // Apple Developer Team ID
+  iosBundleId    String?      // iOS Bundle Identifier
+  iosMinimumVersion String?   // Minimum iOS version
+  iosSupportedDevices String? // JSON array of supported devices
+  
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   createdById    String
