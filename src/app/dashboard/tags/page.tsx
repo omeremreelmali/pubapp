@@ -29,7 +29,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tag, Plus, Edit, Trash2, ArrowLeft, Palette } from "lucide-react";
+import {
+  Tag,
+  Plus,
+  Edit,
+  Trash2,
+  ArrowLeft,
+  Palette,
+  LogOut,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -278,6 +286,12 @@ export default function TagsPage() {
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Ana Sayfa
+                </Button>
+              </Link>
+              <Link href="/auth/signout">
+                <Button variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Çıkış Yap
                 </Button>
               </Link>
             </div>

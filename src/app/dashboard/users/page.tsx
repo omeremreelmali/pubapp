@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, Mail, UserPlus, ArrowLeft } from "lucide-react";
+import { Users, Mail, UserPlus, ArrowLeft, LogOut } from "lucide-react";
 import Link from "next/link";
 import { InviteUserDialog } from "@/components/dashboard/invite-user-dialog";
 
@@ -112,6 +112,12 @@ export default async function UsersPage() {
                 </Button>
               </Link>
               <InviteUserDialog />
+              <Link href="/auth/signout">
+                <Button variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Çıkış Yap
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

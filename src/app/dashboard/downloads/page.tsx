@@ -26,6 +26,7 @@ import {
   Users,
   Clock,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -167,12 +168,20 @@ export default function DownloadsPage() {
                 Uygulama indirme geçmişi ve istatistikleri
               </p>
             </div>
-            <Link href="/dashboard">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Ana Sayfa
-              </Button>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard">
+                <Button variant="outline">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Ana Sayfa
+                </Button>
+              </Link>
+              <Link href="/auth/signout">
+                <Button variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Çıkış Yap
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>

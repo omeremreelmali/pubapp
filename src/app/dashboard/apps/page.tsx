@@ -27,6 +27,7 @@ import {
   User,
   Loader2,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
@@ -183,6 +184,12 @@ export default function AppsPage() {
                   </Button>
                 </Link>
               )}
+              <Link href="/auth/signout">
+                <Button variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Çıkış Yap
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

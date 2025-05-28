@@ -26,6 +26,7 @@ import {
   Calendar,
   User,
   Package,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -190,6 +191,12 @@ export default function TesterAppDetailPage() {
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Uygulamalar
+                </Button>
+              </Link>
+              <Link href="/auth/signout">
+                <Button variant="outline" size="sm">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Çıkış Yap
                 </Button>
               </Link>
             </div>

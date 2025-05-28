@@ -27,6 +27,7 @@ import {
   Smartphone,
   Eye,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -165,6 +166,12 @@ export default function GroupsPage() {
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   Yeni Grup
+                </Button>
+              </Link>
+              <Link href="/auth/signout">
+                <Button variant="outline">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Çıkış Yap
                 </Button>
               </Link>
             </div>
