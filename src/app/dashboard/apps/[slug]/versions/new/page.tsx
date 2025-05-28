@@ -39,6 +39,12 @@ interface TagData {
   color: string;
 }
 
+interface AppData {
+  id: string;
+  name: string;
+  platform: string;
+}
+
 export default function NewVersionPage() {
   const [formData, setFormData] = useState({
     version: "",
@@ -48,6 +54,7 @@ export default function NewVersionPage() {
   const [file, setFile] = useState<File | null>(null);
   const [tags, setTags] = useState<TagData[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [app, setApp] = useState<AppData | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -58,8 +65,22 @@ export default function NewVersionPage() {
   const slug = params.slug as string;
 
   useEffect(() => {
+    fetchAppData();
     fetchTags();
   }, []);
+
+  const fetchAppData = async () => {
+    try {
+      const response = await fetch(`/api/apps/${slug}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setApp(data.app);
+      }
+    } catch (error) {
+      console.error("Error fetching app data:", error);
+    }
+  };
 
   const fetchTags = async () => {
     try {
@@ -93,19 +114,28 @@ export default function NewVersionPage() {
     });
   };
 
-  const handleFileSelect = useCallback((selectedFile: File) => {
-    // Platform bilgisini almak için API çağrısı yapmamız gerekiyor
-    // Şimdilik Android olarak varsayalım, gerçek uygulamada app bilgisini çekmemiz gerekir
-    const validation = validateFile(selectedFile, "ANDROID");
+  const handleFileSelect = useCallback(
+    (selectedFile: File) => {
+      if (!app) {
+        setError("Uygulama bilgisi yükleniyor, lütfen bekleyin");
+        return;
+      }
 
-    if (!validation.isValid) {
-      setError(validation.error || "Geçersiz dosya");
-      return;
-    }
+      const validation = validateFile(
+        selectedFile,
+        app.platform as "ANDROID" | "IOS"
+      );
 
-    setFile(selectedFile);
-    setError("");
-  }, []);
+      if (!validation.isValid) {
+        setError(validation.error || "Geçersiz dosya");
+        return;
+      }
+
+      setFile(selectedFile);
+      setError("");
+    },
+    [app]
+  );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -210,7 +240,11 @@ export default function NewVersionPage() {
                 Yeni Versiyon Yükle
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Uygulamanız için yeni bir versiyon yükleyin
+                {app
+                  ? `${app.name} (${
+                      app.platform === "ANDROID" ? "Android" : "iOS"
+                    }) için yeni bir versiyon yükleyin`
+                  : "Uygulamanız için yeni bir versiyon yükleyin"}
               </p>
             </div>
             <Link href={`/dashboard/apps/${slug}`}>
@@ -230,7 +264,11 @@ export default function NewVersionPage() {
             <CardHeader>
               <CardTitle>Dosya Yükleme</CardTitle>
               <CardDescription>
-                APK, AAB veya IPA dosyanızı yükleyin
+                {app
+                  ? app.platform === "ANDROID"
+                    ? "APK veya AAB dosyanızı yükleyin"
+                    : "IPA dosyanızı yükleyin"
+                  : "Dosyanızı yükleyin"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -256,24 +294,32 @@ export default function NewVersionPage() {
                   <input
                     type="file"
                     onChange={handleFileChange}
-                    accept={[
-                      ...ALLOWED_EXTENSIONS.ANDROID,
-                      ...ALLOWED_EXTENSIONS.IOS,
-                    ].join(",")}
+                    accept={
+                      app
+                        ? app.platform === "ANDROID"
+                          ? ALLOWED_EXTENSIONS.ANDROID.join(",")
+                          : ALLOWED_EXTENSIONS.IOS.join(",")
+                        : [
+                            ...ALLOWED_EXTENSIONS.ANDROID,
+                            ...ALLOWED_EXTENSIONS.IOS,
+                          ].join(",")
+                    }
                     className="hidden"
                     id="file-upload"
+                    disabled={!app}
                   />
                   <label htmlFor="file-upload">
-                    <Button type="button" asChild>
-                      <span>Dosya Seç</span>
+                    <Button type="button" asChild disabled={!app}>
+                      <span>{!app ? "Yükleniyor..." : "Dosya Seç"}</span>
                     </Button>
                   </label>
                   <p className="text-xs text-gray-400 mt-2">
                     Desteklenen formatlar:{" "}
-                    {[
-                      ...ALLOWED_EXTENSIONS.ANDROID,
-                      ...ALLOWED_EXTENSIONS.IOS,
-                    ].join(", ")}
+                    {app
+                      ? app.platform === "ANDROID"
+                        ? ALLOWED_EXTENSIONS.ANDROID.join(", ")
+                        : ALLOWED_EXTENSIONS.IOS.join(", ")
+                      : "Yükleniyor..."}
                   </p>
                 </div>
               ) : (
