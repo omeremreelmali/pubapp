@@ -12,9 +12,9 @@ export async function PUT(
     const { slug, versionId } = await params;
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -23,7 +23,7 @@ export async function PUT(
     const app = await prisma.app.findFirst({
       where: {
         slug,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -99,7 +99,7 @@ export async function PUT(
       const validTags = await prisma.tag.findMany({
         where: {
           id: { in: validatedData.tagIds },
-          organizationId: user.organizationId,
+          organizationId: user.activeOrganization.id,
         },
       });
 
@@ -186,9 +186,9 @@ export async function DELETE(
     const { slug, versionId } = await params;
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -197,7 +197,7 @@ export async function DELETE(
     const app = await prisma.app.findFirst({
       where: {
         slug,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 

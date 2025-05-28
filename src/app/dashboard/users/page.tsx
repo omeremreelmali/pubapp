@@ -22,25 +22,28 @@ import Link from "next/link";
 import { InviteUserDialog } from "@/components/dashboard/invite-user-dialog";
 
 async function getOrganizationUsers(organizationId: string) {
-  const users = await prisma.user.findMany({
+  const members = await prisma.organizationMember.findMany({
     where: { organizationId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      createdAt: true,
-      _count: {
+    include: {
+      user: {
         select: {
-          createdApps: true,
-          uploadedVersions: true,
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          _count: {
+            select: {
+              createdApps: true,
+              uploadedVersions: true,
+            },
+          },
         },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { joinedAt: "desc" },
   });
 
-  return users;
+  return members;
 }
 
 async function getPendingInvitations(organizationId: string) {
@@ -59,13 +62,13 @@ async function getPendingInvitations(organizationId: string) {
 export default async function UsersPage() {
   const user = await requireEditorOrAdmin();
 
-  if (!user.organizationId) {
-    return <div>Organizasyon bulunamadı</div>;
+  if (!user.activeOrganization) {
+    return <div>Aktif organizasyon bulunamadı</div>;
   }
 
-  const [users, pendingInvitations] = await Promise.all([
-    getOrganizationUsers(user.organizationId),
-    getPendingInvitations(user.organizationId),
+  const [members, pendingInvitations] = await Promise.all([
+    getOrganizationUsers(user.activeOrganization.id),
+    getPendingInvitations(user.activeOrganization.id),
   ]);
 
   const getRoleBadgeVariant = (role: string) => {
@@ -134,7 +137,7 @@ export default async function UsersPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-2xl font-bold">{members.length}</div>
             </CardContent>
           </Card>
 
@@ -161,7 +164,7 @@ export default async function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {users.filter((u) => u.role === "ADMIN").length}
+                {members.filter((m) => m.role === "ADMIN").length}
               </div>
             </CardContent>
           </Card>
@@ -188,24 +191,24 @@ export default async function UsersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
+                {members.map((member) => (
+                  <TableRow key={member.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{user.name}</div>
+                        <div className="font-medium">{member.user.name}</div>
                         <div className="text-sm text-gray-500">
-                          {user.email}
+                          {member.user.email}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
-                        {user.role}
+                      <Badge variant={getRoleBadgeVariant(member.role)}>
+                        {member.role}
                       </Badge>
                     </TableCell>
-                    <TableCell>{user._count.createdApps}</TableCell>
-                    <TableCell>{user._count.uploadedVersions}</TableCell>
-                    <TableCell>{formatDate(user.createdAt)}</TableCell>
+                    <TableCell>{member.user._count.createdApps}</TableCell>
+                    <TableCell>{member.user._count.uploadedVersions}</TableCell>
+                    <TableCell>{formatDate(member.joinedAt)}</TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm">
                         Düzenle

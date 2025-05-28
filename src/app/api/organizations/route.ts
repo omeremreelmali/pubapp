@@ -2,22 +2,43 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-utils";
 import { organizationCreateSchema } from "@/lib/validations/auth";
-import { createDefaultTags } from "@/lib/seed-tags";
+import { UserRole } from "@/generated/prisma";
+
+// Varsayılan tag'leri oluşturan fonksiyon
+async function createDefaultTags(organizationId: string) {
+  const defaultTags = [
+    { name: "Development", color: "#EF4444" },
+    { name: "Testing", color: "#F59E0B" },
+    { name: "Staging", color: "#8B5CF6" },
+    { name: "Production", color: "#10B981" },
+    { name: "Beta", color: "#3B82F6" },
+    { name: "Alpha", color: "#EC4899" },
+  ];
+
+  await prisma.tag.createMany({
+    data: defaultTags.map((tag) => ({
+      ...tag,
+      organizationId,
+    })),
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
-
     const body = await request.json();
+
+    // Validation
     const validatedData = await organizationCreateSchema.validate(body);
 
-    // Create slug from name
+    // Slug oluştur
     const slug = validatedData.name
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
+      .replace(/[^a-z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
 
-    // Check if slug already exists
+    // Slug'ın benzersiz olduğunu kontrol et
     const existingOrg = await prisma.organization.findUnique({
       where: { slug },
     });
@@ -29,9 +50,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create organization and default tags in a transaction
+    // Organizasyon ve üyelik oluştur
     const result = await prisma.$transaction(async (tx) => {
-      // Create organization
+      // Organizasyon oluştur
       const organization = await tx.organization.create({
         data: {
           name: validatedData.name,
@@ -40,40 +61,33 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Update user to be part of this organization
-      const updatedUser = await tx.user.update({
-        where: { id: user.id },
-        data: { organizationId: organization.id },
-        include: {
-          organization: true,
+      // Kullanıcıyı organizasyona ADMIN olarak ekle
+      const membership = await tx.organizationMember.create({
+        data: {
+          userId: user.id,
+          organizationId: organization.id,
+          role: UserRole.ADMIN,
         },
       });
 
-      return { organization, user: updatedUser };
+      return { organization, membership };
     });
 
-    // Create default tags after transaction
+    // Varsayılan tag'leri oluştur
     try {
       await createDefaultTags(result.organization.id);
     } catch (tagError) {
-      console.error("Error creating default tags:", tagError);
-      // Don't fail the organization creation if tag creation fails
+      console.error("Default tags creation failed:", tagError);
+      // Tag oluşturma hatası organizasyon oluşturmayı engellemez
     }
 
     return NextResponse.json({
       message: "Organizasyon başarıyla oluşturuldu",
       organization: result.organization,
-      user: {
-        id: result.user.id,
-        name: result.user.name,
-        email: result.user.email,
-        role: result.user.role,
-        organizationId: result.user.organizationId,
-        organization: result.user.organization,
-      },
+      membershipId: result.membership.id,
     });
   } catch (error: any) {
-    console.error("Create organization error:", error);
+    console.error("Organization creation error:", error);
 
     if (error.name === "ValidationError") {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -87,23 +101,26 @@ export async function GET() {
   try {
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
     const organization = await prisma.organization.findUnique({
-      where: { id: user.organizationId },
+      where: { id: user.activeOrganization.id },
       include: {
-        users: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-            createdAt: true,
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                createdAt: true,
+              },
+            },
           },
         },
         _count: {

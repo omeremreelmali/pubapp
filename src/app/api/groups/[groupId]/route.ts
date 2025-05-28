@@ -11,9 +11,9 @@ export async function GET(
     const { groupId } = await params;
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -21,7 +21,7 @@ export async function GET(
     const group = await prisma.group.findFirst({
       where: {
         id: groupId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
       include: {
         members: {
@@ -31,7 +31,6 @@ export async function GET(
                 id: true,
                 name: true,
                 email: true,
-                role: true,
               },
             },
           },
@@ -79,9 +78,9 @@ export async function PUT(
     const { groupId } = await params;
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -93,7 +92,7 @@ export async function PUT(
     const existingGroup = await prisma.group.findFirst({
       where: {
         id: groupId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -106,7 +105,7 @@ export async function PUT(
       const nameExists = await prisma.group.findFirst({
         where: {
           name: validatedData.name,
-          organizationId: user.organizationId,
+          organizationId: user.activeOrganization.id,
           id: { not: groupId },
         },
       });
@@ -131,7 +130,6 @@ export async function PUT(
                 id: true,
                 name: true,
                 email: true,
-                role: true,
               },
             },
           },
@@ -179,9 +177,9 @@ export async function DELETE(
     const { groupId } = await params;
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -190,7 +188,7 @@ export async function DELETE(
     const group = await prisma.group.findFirst({
       where: {
         id: groupId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 

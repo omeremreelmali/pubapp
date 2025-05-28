@@ -8,9 +8,9 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const existingApp = await prisma.app.findFirst({
       where: {
         slug,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         packageName: validatedData.packageName,
         platform: validatedData.platform as Platform,
         description: validatedData.description,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
         createdById: user.id,
       },
       include: {
@@ -97,9 +97,9 @@ export async function GET(request: NextRequest) {
   try {
     const user = await requireEditorOrAdmin();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
 
     const whereClause: any = {
-      organizationId: user.organizationId,
+      organizationId: user.activeOrganization.id,
     };
 
     if (platform && ["ANDROID", "IOS"].includes(platform)) {

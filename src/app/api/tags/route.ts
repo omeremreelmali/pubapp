@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth, getCurrentRole } from "@/lib/auth-utils";
 import * as yup from "yup";
 
 const createTagSchema = yup.object({
@@ -20,16 +20,16 @@ export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
     const tags = await prisma.tag.findMany({
       where: {
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
       include: {
         _count: {
@@ -55,15 +55,17 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
+    const currentRole = getCurrentRole(user);
+
     // Only ADMIN and EDITOR can create tags
-    if (user.role === "TESTER") {
+    if (currentRole === "TESTER") {
       return NextResponse.json(
         { error: "Tag oluşturmak için yetkiniz yok" },
         { status: 403 }
@@ -77,7 +79,7 @@ export async function POST(request: NextRequest) {
     const existingTag = await prisma.tag.findFirst({
       where: {
         name: validatedData.name,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: validatedData.name,
         color: validatedData.color,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 

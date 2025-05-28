@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth, getCurrentRole } from "@/lib/auth-utils";
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
+    const currentRole = getCurrentRole(user);
+
     // Only ADMIN and EDITOR can view download stats
-    if (user.role === "TESTER") {
+    if (currentRole === "TESTER") {
       return NextResponse.json(
         { error: "Bu işlem için yetkiniz yok" },
         { status: 403 }
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest) {
     const totalDownloadsResult = await prisma.appVersion.aggregate({
       where: {
         app: {
-          organizationId: user.organizationId,
+          organizationId: user.activeOrganization.id,
         },
       },
       _sum: {
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
         where: {
           version: {
             app: {
-              organizationId: user.organizationId,
+              organizationId: user.activeOrganization.id,
             },
           },
           downloadedAt: {
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
         where: {
           version: {
             app: {
-              organizationId: user.organizationId,
+              organizationId: user.activeOrganization.id,
             },
           },
           downloadedAt: {
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
         where: {
           version: {
             app: {
-              organizationId: user.organizationId,
+              organizationId: user.activeOrganization.id,
             },
           },
           downloadedAt: {
@@ -91,7 +93,7 @@ export async function GET(request: NextRequest) {
     // Get top apps by download count
     const topAppsData = await prisma.app.findMany({
       where: {
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
       select: {
         id: true,
@@ -126,7 +128,7 @@ export async function GET(request: NextRequest) {
       where: {
         version: {
           app: {
-            organizationId: user.organizationId,
+            organizationId: user.activeOrganization.id,
           },
         },
       },
@@ -150,7 +152,6 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             email: true,
-            role: true,
           },
         },
       },

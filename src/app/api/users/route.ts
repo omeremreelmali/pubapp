@@ -1,41 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth, getCurrentRole } from "@/lib/auth-utils";
 
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
+    const currentRole = getCurrentRole(user);
+
     // Only ADMIN and EDITOR can list users
-    if (user.role === "TESTER") {
+    if (currentRole === "TESTER") {
       return NextResponse.json(
         { error: "Bu işlem için yetkiniz yok" },
         { status: 403 }
       );
     }
 
-    const users = await prisma.user.findMany({
+    const organizationMembers = await prisma.organizationMember.findMany({
       where: {
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: "desc",
+        joinedAt: "desc",
       },
     });
+
+    const users = organizationMembers.map((member) => ({
+      id: member.user.id,
+      name: member.user.name,
+      email: member.user.email,
+      role: member.role,
+      createdAt: member.user.createdAt,
+      joinedAt: member.joinedAt,
+    }));
 
     return NextResponse.json({ users });
   } catch (error: any) {

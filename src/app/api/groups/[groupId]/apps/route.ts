@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-utils";
+import { requireAuth, getCurrentRole } from "@/lib/auth-utils";
 
 export async function GET(
   request: NextRequest,
@@ -10,15 +10,17 @@ export async function GET(
     const { groupId } = await params;
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
+    const currentRole = getCurrentRole(user);
+
     // Only ADMIN and EDITOR can manage groups
-    if (user.role === "TESTER") {
+    if (currentRole === "TESTER") {
       return NextResponse.json(
         { error: "Bu işlem için yetkiniz yok" },
         { status: 403 }
@@ -29,7 +31,7 @@ export async function GET(
     const group = await prisma.group.findFirst({
       where: {
         id: groupId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -73,15 +75,17 @@ export async function POST(
     const { groupId } = await params;
     const user = await requireAuth();
 
-    if (!user.organizationId) {
+    if (!user.activeOrganization) {
       return NextResponse.json(
-        { error: "Kullanıcı herhangi bir organizasyona üye değil" },
+        { error: "Aktif organizasyon bulunamadı" },
         { status: 400 }
       );
     }
 
+    const currentRole = getCurrentRole(user);
+
     // Only ADMIN and EDITOR can manage groups
-    if (user.role === "TESTER") {
+    if (currentRole === "TESTER") {
       return NextResponse.json(
         { error: "Bu işlem için yetkiniz yok" },
         { status: 403 }
@@ -102,7 +106,7 @@ export async function POST(
     const group = await prisma.group.findFirst({
       where: {
         id: groupId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 
@@ -114,7 +118,7 @@ export async function POST(
     const app = await prisma.app.findFirst({
       where: {
         id: appId,
-        organizationId: user.organizationId,
+        organizationId: user.activeOrganization.id,
       },
     });
 

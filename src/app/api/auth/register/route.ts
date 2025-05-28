@@ -26,8 +26,7 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hashPassword(validatedData.password);
 
-    let organizationId: string | null = null;
-    let userRole: UserRole = UserRole.ADMIN; // İlk kullanıcı admin olur
+    let invitationData: any = null;
 
     // Check invite code if provided
     if (validatedData.inviteCode) {
@@ -54,42 +53,50 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      organizationId = invitation.organizationId;
-      userRole = invitation.role;
-
-      // Mark invitation as used
-      await prisma.organizationInvitation.update({
-        where: { id: invitation.id },
-        data: { usedAt: new Date() },
-      });
-    } else {
-      // Davet kodu olmadan kayıt olan kullanıcılar kendi organizasyonlarını oluşturabilir
-      // Bu kullanıcılar ADMIN rolü alır
-      userRole = UserRole.ADMIN;
-      // organizationId null kalır, kullanıcı setup sayfasında organizasyon oluşturacak
+      invitationData = invitation;
     }
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name: validatedData.name,
-        email: validatedData.email,
-        password: hashedPassword,
-        role: userRole,
-        organizationId,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        organizationId: true,
-      },
+    // Transaction ile kullanıcı ve organizasyon üyeliği oluştur
+    const result = await prisma.$transaction(async (tx) => {
+      // Kullanıcı oluştur
+      const user = await tx.user.create({
+        data: {
+          name: validatedData.name,
+          email: validatedData.email,
+          password: hashedPassword,
+        },
+      });
+
+      let membership = null;
+
+      if (invitationData) {
+        // Davet ile kayıt olan kullanıcı için organizasyon üyeliği oluştur
+        membership = await tx.organizationMember.create({
+          data: {
+            userId: user.id,
+            organizationId: invitationData.organizationId,
+            role: invitationData.role,
+          },
+        });
+
+        // Daveti kullanıldı olarak işaretle
+        await tx.organizationInvitation.update({
+          where: { id: invitationData.id },
+          data: { usedAt: new Date() },
+        });
+      }
+
+      return { user, membership };
     });
 
     return NextResponse.json({
       message: "Kullanıcı başarıyla oluşturuldu",
-      user,
+      user: {
+        id: result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        hasOrganization: !!result.membership,
+      },
     });
   } catch (error: any) {
     console.error("Register error:", error);
