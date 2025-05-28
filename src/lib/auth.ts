@@ -56,12 +56,23 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.role = user.role;
         token.organizationId = user.organizationId;
         token.organization = user.organization;
       }
+
+      // Session update trigger'ı geldiğinde token'ı güncelle
+      if (trigger === "update" && session) {
+        if (session.organizationId !== undefined) {
+          token.organizationId = session.organizationId;
+        }
+        if (session.organization !== undefined) {
+          token.organization = session.organization;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -76,7 +87,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin",
-    signUp: "/auth/signup",
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

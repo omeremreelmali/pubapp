@@ -41,17 +41,20 @@ export async function POST(request: NextRequest) {
       });
 
       // Update user to be part of this organization
-      await tx.user.update({
+      const updatedUser = await tx.user.update({
         where: { id: user.id },
         data: { organizationId: organization.id },
+        include: {
+          organization: true,
+        },
       });
 
-      return organization;
+      return { organization, user: updatedUser };
     });
 
     // Create default tags after transaction
     try {
-      await createDefaultTags(result.id);
+      await createDefaultTags(result.organization.id);
     } catch (tagError) {
       console.error("Error creating default tags:", tagError);
       // Don't fail the organization creation if tag creation fails
@@ -59,7 +62,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: "Organizasyon başarıyla oluşturuldu",
-      organization: result,
+      organization: result.organization,
+      user: {
+        id: result.user.id,
+        name: result.user.name,
+        email: result.user.email,
+        role: result.user.role,
+        organizationId: result.user.organizationId,
+        organization: result.user.organization,
+      },
     });
   } catch (error: any) {
     console.error("Create organization error:", error);

@@ -63,14 +63,11 @@ export async function POST(request: NextRequest) {
         data: { usedAt: new Date() },
       });
     } else {
-      // Check if this is the first user (should be admin)
+      // Davet kodu olmadan kayıt olan kullanıcılar kendi organizasyonlarını oluşturabilir
+      // İlk kullanıcı ADMIN, diğerleri TESTER rolü alır
       const userCount = await prisma.user.count();
-      if (userCount > 0) {
-        return NextResponse.json(
-          { error: "Kayıt olmak için davet kodu gereklidir" },
-          { status: 400 }
-        );
-      }
+      userRole = userCount === 0 ? UserRole.ADMIN : UserRole.TESTER;
+      // organizationId null kalır, kullanıcı setup sayfasında organizasyon oluşturacak
     }
 
     // Create user

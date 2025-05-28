@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Building2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function SetupPage() {
   const [formData, setFormData] = useState({
@@ -24,6 +26,7 @@ export default function SetupPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { update } = useSession();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -53,6 +56,15 @@ export default function SetupPage() {
       if (!response.ok) {
         setError(data.error || "Bir hata oluştu");
       } else {
+        toast.success("Organizasyon başarıyla oluşturuldu!");
+
+        // Session'ı güncelle
+        await update({
+          organizationId: data.user.organizationId,
+          organization: data.user.organization,
+        });
+
+        // Dashboard'a yönlendir
         router.push("/dashboard");
         router.refresh();
       }
