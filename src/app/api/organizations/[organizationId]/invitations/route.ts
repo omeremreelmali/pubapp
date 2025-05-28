@@ -148,3 +148,70 @@ export async function GET(
     return NextResponse.json({ error: "Bir hata oluştu" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ organizationId: string }> }
+) {
+  try {
+    const user = await requireAuth();
+    const { organizationId } = await params;
+
+    // Get invitationId from query parameters
+    const { searchParams } = new URL(request.url);
+    const invitationId = searchParams.get("invitationId");
+
+    if (!invitationId) {
+      return NextResponse.json(
+        { error: "Davet ID'si gerekli" },
+        { status: 400 }
+      );
+    }
+
+    // Kullanıcının bu organizasyona erişimi var mı kontrol et
+    if (!hasOrganizationAccess(user, organizationId)) {
+      return NextResponse.json(
+        { error: "Bu organizasyona erişim yetkiniz yok" },
+        { status: 403 }
+      );
+    }
+
+    const currentRole = getCurrentRole(user);
+
+    // Only ADMIN and EDITOR can cancel invitations
+    if (currentRole !== "ADMIN" && currentRole !== "EDITOR") {
+      return NextResponse.json(
+        { error: "Bu işlem için yetkiniz yok" },
+        { status: 403 }
+      );
+    }
+
+    // Check if the invitation exists and belongs to the current organization
+    const invitation = await prisma.organizationInvitation.findFirst({
+      where: {
+        id: invitationId,
+        organizationId,
+        usedAt: null, // Only allow canceling unused invitations
+      },
+    });
+
+    if (!invitation) {
+      return NextResponse.json(
+        { error: "Davet bulunamadı veya zaten kullanılmış" },
+        { status: 404 }
+      );
+    }
+
+    // Delete the invitation
+    await prisma.organizationInvitation.delete({
+      where: {
+        id: invitationId,
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("Cancel invitation error:", error);
+    return NextResponse.json({ error: "Bir hata oluştu" }, { status: 500 });
+  }
+}

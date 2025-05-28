@@ -1,5 +1,7 @@
-import { requireEditorOrAdmin } from "@/lib/auth-utils";
-import { prisma } from "@/lib/prisma";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   Card,
   CardContent,
@@ -17,59 +19,166 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, Mail, UserPlus, ArrowLeft, LogOut } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Users,
+  Mail,
+  UserPlus,
+  ArrowLeft,
+  LogOut,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { InviteUserDialog } from "@/components/dashboard/invite-user-dialog";
 
-async function getOrganizationUsers(organizationId: string) {
-  const members = await prisma.organizationMember.findMany({
-    where: { organizationId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          createdAt: true,
-          _count: {
-            select: {
-              createdApps: true,
-              uploadedVersions: true,
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  _count: {
+    createdApps: number;
+    uploadedVersions: number;
+  };
+}
+
+interface Member {
+  id: string;
+  role: string;
+  joinedAt: string;
+  user: User;
+}
+
+interface Invitation {
+  id: string;
+  email: string;
+  role: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export default function UsersPage() {
+  const { data: session } = useSession();
+  const [members, setMembers] = useState<Member[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<Invitation[]>(
+    []
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [editingMember, setEditingMember] = useState<Member | null>(null);
+  const [newRole, setNewRole] = useState<string>("");
+  const [dialog, setDialog] = useState<boolean>(false);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [usersResponse, invitationsResponse] = await Promise.all([
+        fetch("/api/users"),
+        fetch("/api/organizations/invitations"),
+      ]);
+
+      if (usersResponse.ok) {
+        const usersData = await usersResponse.json();
+        setMembers(
+          usersData.users.map((user: any) => ({
+            id: user.id,
+            role: user.role,
+            joinedAt: user.joinedAt,
+            user: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              createdAt: user.createdAt,
+              _count: {
+                createdApps: 0, // Bu bilgi API'den gelmiyor, varsayılan değer
+                uploadedVersions: 0, // Bu bilgi API'den gelmiyor, varsayılan değer
+              },
             },
-          },
+          }))
+        );
+      }
+
+      if (invitationsResponse.ok) {
+        const invitationsData = await invitationsResponse.json();
+        setPendingInvitations(invitationsData.invitations || []);
+      }
+    } catch (error) {
+      toast.error("Veriler yüklenirken hata oluştu");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditRole = async () => {
+    if (!editingMember || !newRole) return;
+
+    try {
+      const response = await fetch(`/api/users/${editingMember.user.id}/role`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
         },
-      },
-    },
-    orderBy: { joinedAt: "desc" },
-  });
+        body: JSON.stringify({ role: newRole }),
+      });
 
-  return members;
-}
+      if (response.ok) {
+        toast.success("Kullanıcı rolü başarıyla güncellendi");
+        setEditingMember(null);
+        setNewRole("");
+        fetchData();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Rol güncellenirken hata oluştu");
+      }
+    } catch (error) {
+      toast.error("Bir hata oluştu");
+    }
+  };
 
-async function getPendingInvitations(organizationId: string) {
-  const invitations = await prisma.organizationInvitation.findMany({
-    where: {
-      organizationId,
-      usedAt: null,
-      expiresAt: { gt: new Date() },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const handleCancelInvitation = async (invitationId: string) => {
+    try {
+      if (!session?.user?.activeOrganization) {
+        toast.error("Aktif organizasyon bulunamadı");
+        return;
+      }
 
-  return invitations;
-}
+      const response = await fetch(
+        `/api/organizations/${session.user.activeOrganization.id}/invitations?invitationId=${invitationId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
-export default async function UsersPage() {
-  const user = await requireEditorOrAdmin();
-
-  if (!user.activeOrganization) {
-    return <div>Aktif organizasyon bulunamadı</div>;
-  }
-
-  const [members, pendingInvitations] = await Promise.all([
-    getOrganizationUsers(user.activeOrganization.id),
-    getPendingInvitations(user.activeOrganization.id),
-  ]);
+      if (response.ok) {
+        toast.success("Davet başarıyla iptal edildi");
+        fetchData();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Davet iptal edilirken hata oluştu");
+      }
+    } catch (error) {
+      toast.error("Bir hata oluştu");
+    }
+  };
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -84,13 +193,24 @@ export default async function UsersPage() {
     }
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (dateString: string) => {
     return new Intl.DateTimeFormat("tr-TR", {
       year: "numeric",
       month: "short",
       day: "numeric",
-    }).format(date);
+    }).format(new Date(dateString));
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Kullanıcılar yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -104,7 +224,9 @@ export default async function UsersPage() {
                 Kullanıcı Yönetimi
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Organizasyonunuzdaki kullanıcıları yönetin
+                {session?.user?.activeOrganization
+                  ? `${session.user.activeOrganization.name} organizasyonundaki kullanıcıları yönetin`
+                  : "Organizasyonunuzdaki kullanıcıları yönetin"}
               </p>
             </div>
             <div className="flex items-center space-x-4">
@@ -184,8 +306,6 @@ export default async function UsersPage() {
                 <TableRow>
                   <TableHead>Kullanıcı</TableHead>
                   <TableHead>Rol</TableHead>
-                  <TableHead>Uygulamalar</TableHead>
-                  <TableHead>Yüklemeler</TableHead>
                   <TableHead>Katılma Tarihi</TableHead>
                   <TableHead>İşlemler</TableHead>
                 </TableRow>
@@ -206,13 +326,56 @@ export default async function UsersPage() {
                         {member.role}
                       </Badge>
                     </TableCell>
-                    <TableCell>{member.user._count.createdApps}</TableCell>
-                    <TableCell>{member.user._count.uploadedVersions}</TableCell>
                     <TableCell>{formatDate(member.joinedAt)}</TableCell>
                     <TableCell>
-                      <Button variant="outline" size="sm">
-                        Düzenle
-                      </Button>
+                      <Dialog open={dialog} onOpenChange={setDialog}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEditingMember(member);
+                              setNewRole(member.role);
+                            }}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
+                            Düzenle
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Kullanıcı Rolünü Düzenle</DialogTitle>
+                            <DialogDescription>
+                              {member.user.name} kullanıcısının rolünü
+                              değiştirin
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="py-4">
+                            <Select value={newRole} onValueChange={setNewRole}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Rol seçin" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="ADMIN">Admin</SelectItem>
+                                <SelectItem value="EDITOR">Editor</SelectItem>
+                                <SelectItem value="TESTER">Tester</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <DialogFooter>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setDialog(false);
+                                setEditingMember(null);
+                              }}
+                            >
+                              İptal
+                            </Button>
+                            <Button onClick={handleEditRole}>Kaydet</Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -251,7 +414,12 @@ export default async function UsersPage() {
                       <TableCell>{formatDate(invitation.createdAt)}</TableCell>
                       <TableCell>{formatDate(invitation.expiresAt)}</TableCell>
                       <TableCell>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCancelInvitation(invitation.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
                           İptal Et
                         </Button>
                       </TableCell>

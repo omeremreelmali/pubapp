@@ -347,9 +347,6 @@ export default function DownloadsPage() {
                               <div className="text-sm text-gray-500">
                                 {download.createdBy.email}
                               </div>
-                              <div className="mt-1">
-                                {getRoleBadge(download.createdBy.role)}
-                              </div>
                             </div>
                           </TableCell>
                           <TableCell>
