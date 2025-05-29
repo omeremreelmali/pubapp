@@ -46,6 +46,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface Group {
   id: string;
@@ -94,6 +97,7 @@ interface App {
 }
 
 export default function GroupDetailPage() {
+  const { t } = useTranslation("common");
   const params = useParams();
   const groupId = params.groupId as string;
 
@@ -120,13 +124,13 @@ export default function GroupDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Grup yüklenirken hata oluştu");
+        toast.error(data.error || t("groupLoadError"));
         return;
       }
 
       setGroup(data.group);
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -160,7 +164,7 @@ export default function GroupDetailPage() {
 
   const addMember = async () => {
     if (!selectedUserId) {
-      toast.error("Lütfen bir kullanıcı seçin");
+      toast.error(t("pleaseSelectUser"));
       return;
     }
 
@@ -178,14 +182,14 @@ export default function GroupDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Üye eklenirken hata oluştu");
+        toast.error(data.error || t("memberAddError"));
       } else {
-        toast.success("Üye başarıyla eklendi");
+        toast.success(t("memberAddSuccess"));
         setSelectedUserId("");
         fetchGroup();
       }
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsAddingMember(false);
     }
@@ -200,19 +204,19 @@ export default function GroupDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Üye çıkarılırken hata oluştu");
+        toast.error(data.error || t("memberRemoveError"));
       } else {
-        toast.success("Üye başarıyla çıkarıldı");
+        toast.success(t("memberRemoveSuccess"));
         fetchGroup();
       }
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
   const addAppAccess = async () => {
     if (!selectedAppId) {
-      toast.error("Lütfen bir uygulama seçin");
+      toast.error(t("pleaseSelectApp"));
       return;
     }
 
@@ -230,14 +234,14 @@ export default function GroupDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Uygulama erişimi verilirken hata oluştu");
+        toast.error(data.error || t("appAccessGrantError"));
       } else {
-        toast.success("Uygulama erişimi başarıyla verildi");
+        toast.success(t("appAccessGrantSuccess"));
         setSelectedAppId("");
         fetchGroup();
       }
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsAddingApp(false);
     }
@@ -252,13 +256,13 @@ export default function GroupDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Uygulama erişimi kaldırılırken hata oluştu");
+        toast.error(data.error || t("appAccessRemoveError"));
       } else {
-        toast.success("Uygulama erişimi başarıyla kaldırıldı");
+        toast.success(t("appAccessRemoveSuccess"));
         fetchGroup();
       }
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
@@ -275,11 +279,11 @@ export default function GroupDetailPage() {
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
       <Badge variant="default" className="bg-green-600">
-        Android
+        {t("android")}
       </Badge>
     ) : (
       <Badge variant="default" className="bg-blue-600">
-        iOS
+        {t("ios")}
       </Badge>
     );
   };
@@ -293,7 +297,11 @@ export default function GroupDetailPage() {
 
     return (
       <Badge variant={variants[role as keyof typeof variants] || "outline"}>
-        {role}
+        {role === "ADMIN"
+          ? t("admin")
+          : role === "EDITOR"
+          ? t("editor")
+          : t("tester")}
       </Badge>
     );
   };
@@ -315,7 +323,7 @@ export default function GroupDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Grup yükleniyor...</p>
+          <p className="text-gray-600">{t("groupLoading")}</p>
         </div>
       </div>
     );
@@ -327,15 +335,13 @@ export default function GroupDetailPage() {
         <div className="text-center">
           <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Grup bulunamadı
+            {t("groupNotFound")}
           </h3>
-          <p className="text-gray-500 mb-4">
-            Bu grup mevcut değil veya erişim yetkiniz yok
-          </p>
+          <p className="text-gray-500 mb-4">{t("groupNotFoundDescription")}</p>
           <Link href="/dashboard/groups">
             <Button>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Gruplar
+              {t("groups")}
             </Button>
           </Link>
         </div>
@@ -361,21 +367,22 @@ export default function GroupDetailPage() {
               )}
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href="/dashboard/groups">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Gruplar
+                  {t("groups")}
                 </Button>
               </Link>
               <Link href={`/dashboard/groups/${groupId}/settings`}>
                 <Button variant="outline">
                   <Settings className="mr-2 h-4 w-4" />
-                  Ayarlar
+                  {t("settings")}
                 </Button>
               </Link>
             </div>
@@ -388,7 +395,9 @@ export default function GroupDetailPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Toplam Üye</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t("totalMembers")}
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -399,7 +408,7 @@ export default function GroupDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Uygulama Erişimi
+                {t("appAccessManagement")}
               </CardTitle>
               <Smartphone className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -410,7 +419,9 @@ export default function GroupDetailPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Oluşturulma</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t("createdDate")}
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -426,23 +437,25 @@ export default function GroupDetailPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Grup Üyeleri</CardTitle>
+                <CardTitle>{t("groupMembers")}</CardTitle>
                 <CardDescription>
-                  Bu grubun üyeleri ({group.members.length} üye)
+                  {t("groupMembersDescription", {
+                    count: group.members.length,
+                  })}
                 </CardDescription>
               </div>
               <Dialog>
                 <DialogTrigger asChild>
                   <Button size="sm">
                     <UserPlus className="mr-2 h-4 w-4" />
-                    Üye Ekle
+                    {t("addMember")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Gruba Üye Ekle</DialogTitle>
+                    <DialogTitle>{t("addMemberToGroup")}</DialogTitle>
                     <DialogDescription>
-                      Gruba eklemek istediğiniz kullanıcıyı seçin
+                      {t("addMemberDescription")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -451,22 +464,27 @@ export default function GroupDetailPage() {
                       onValueChange={setSelectedUserId}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Kullanıcı seçin..." />
+                        <SelectValue placeholder={t("selectUser")} />
                       </SelectTrigger>
                       <SelectContent>
                         {getAvailableUsersForGroup().map((user) => (
                           <SelectItem key={user.id} value={user.id}>
-                            {user.name} ({user.email}) - {user.role}
+                            {user.name} ({user.email}) -{" "}
+                            {user.role === "ADMIN"
+                              ? t("admin")
+                              : user.role === "EDITOR"
+                              ? t("editor")
+                              : t("tester")}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <div className="flex justify-end space-x-2">
                       <DialogTrigger asChild>
-                        <Button variant="outline">İptal</Button>
+                        <Button variant="outline">{t("cancel")}</Button>
                       </DialogTrigger>
                       <Button onClick={addMember} disabled={isAddingMember}>
-                        {isAddingMember ? "Ekleniyor..." : "Ekle"}
+                        {isAddingMember ? t("adding") : t("add")}
                       </Button>
                     </div>
                   </div>
@@ -479,19 +497,19 @@ export default function GroupDetailPage() {
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Henüz üye yok
+                  {t("noMembersYet")}
                 </h3>
-                <p className="text-gray-500">Bu gruba henüz üye eklenmemiş</p>
+                <p className="text-gray-500">{t("noMembersDescription")}</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Kullanıcı</TableHead>
-                    <TableHead>E-posta</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Katılma Tarihi</TableHead>
-                    <TableHead>İşlemler</TableHead>
+                    <TableHead>{t("userName")}</TableHead>
+                    <TableHead>{t("email")}</TableHead>
+                    <TableHead>{t("role")}</TableHead>
+                    <TableHead>{t("joinDate")}</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -525,24 +543,25 @@ export default function GroupDetailPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Uygulama Erişimleri</CardTitle>
+                <CardTitle>{t("appAccesses")}</CardTitle>
                 <CardDescription>
-                  Bu grubun erişebildiği uygulamalar ({group.appAccess.length}{" "}
-                  uygulama)
+                  {t("appAccessesDescription", {
+                    count: group.appAccess.length,
+                  })}
                 </CardDescription>
               </div>
               <Dialog>
                 <DialogTrigger asChild>
                   <Button size="sm">
                     <Plus className="mr-2 h-4 w-4" />
-                    Uygulama Ekle
+                    {t("addApp")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Uygulama Erişimi Ver</DialogTitle>
+                    <DialogTitle>{t("grantAppAccess")}</DialogTitle>
                     <DialogDescription>
-                      Gruba erişim vermek istediğiniz uygulamayı seçin
+                      {t("grantAppAccessDescription")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
@@ -551,22 +570,26 @@ export default function GroupDetailPage() {
                       onValueChange={setSelectedAppId}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Uygulama seçin..." />
+                        <SelectValue placeholder={t("selectApp")} />
                       </SelectTrigger>
                       <SelectContent>
                         {getAvailableAppsForGroup().map((app) => (
                           <SelectItem key={app.id} value={app.id}>
-                            {app.name} ({app.platform}) - {app.packageName}
+                            {app.name} (
+                            {app.platform === "ANDROID"
+                              ? t("android")
+                              : t("ios")}
+                            ) - {app.packageName}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <div className="flex justify-end space-x-2">
                       <DialogTrigger asChild>
-                        <Button variant="outline">İptal</Button>
+                        <Button variant="outline">{t("cancel")}</Button>
                       </DialogTrigger>
                       <Button onClick={addAppAccess} disabled={isAddingApp}>
-                        {isAddingApp ? "Ekleniyor..." : "Ekle"}
+                        {isAddingApp ? t("adding") : t("add")}
                       </Button>
                     </div>
                   </div>
@@ -579,21 +602,19 @@ export default function GroupDetailPage() {
               <div className="text-center py-8">
                 <Smartphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Henüz uygulama erişimi yok
+                  {t("noAppAccessYet")}
                 </h3>
-                <p className="text-gray-500">
-                  Bu gruba henüz uygulama erişimi verilmemiş
-                </p>
+                <p className="text-gray-500">{t("noAppAccessDescription")}</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Uygulama</TableHead>
-                    <TableHead>Platform</TableHead>
-                    <TableHead>Paket Adı</TableHead>
-                    <TableHead>Erişim Tarihi</TableHead>
-                    <TableHead>İşlemler</TableHead>
+                    <TableHead>{t("application")}</TableHead>
+                    <TableHead>{t("platform")}</TableHead>
+                    <TableHead>{t("packageName")}</TableHead>
+                    <TableHead>{t("accessDate")}</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

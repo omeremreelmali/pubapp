@@ -17,8 +17,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ArrowLeft, Users } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function NewGroupPage() {
+  const { t } = useTranslation("common");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -41,7 +45,7 @@ export default function NewGroupPage() {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      setError("Grup adı gereklidir");
+      setError(t("groupNameRequiredError"));
       return;
     }
 
@@ -60,13 +64,13 @@ export default function NewGroupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Bir hata oluştu");
+        setError(data.error || t("errorOccurred"));
       } else {
-        toast.success("Grup başarıyla oluşturuldu!");
+        toast.success(t("groupCreatedSuccess"));
         router.push(`/dashboard/groups/${data.group.id}`);
       }
     } catch (error) {
-      setError("Bir hata oluştu");
+      setError(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -81,22 +85,23 @@ export default function NewGroupPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Users className="mr-3 h-8 w-8" />
-                Yeni Grup Oluştur
+                {t("createNewGroup")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Test kullanıcıları için yeni bir grup oluşturun
+                {t("createNewGroupDescription")}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href="/dashboard/groups">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Gruplar
+                  {t("groups")}
                 </Button>
               </Link>
             </div>
@@ -109,8 +114,8 @@ export default function NewGroupPage() {
           {/* Group Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Grup Bilgileri</CardTitle>
-              <CardDescription>Grup için temel bilgileri girin</CardDescription>
+              <CardTitle>{t("groupInfo")}</CardTitle>
+              <CardDescription>{t("groupInfoDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {error && (
@@ -120,35 +125,33 @@ export default function NewGroupPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="name">Grup Adı *</Label>
+                <Label htmlFor="name">{t("groupNameRequired")}</Label>
                 <Input
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="Test Kullanıcıları"
+                  placeholder={t("groupNamePlaceholder")}
                   value={formData.name}
                   onChange={handleChange}
                   required
                   disabled={isLoading}
                 />
-                <p className="text-xs text-gray-500">
-                  Grup için açıklayıcı bir ad seçin
-                </p>
+                <p className="text-xs text-gray-500">{t("groupNameHelper")}</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Açıklama</Label>
+                <Label htmlFor="description">{t("description")}</Label>
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Bu grup için açıklama..."
+                  placeholder={t("descriptionPlaceholder")}
                   value={formData.description}
                   onChange={handleChange}
                   disabled={isLoading}
                   rows={4}
                 />
                 <p className="text-xs text-gray-500">
-                  Opsiyonel: Grubun amacını ve kapsamını açıklayın
+                  {t("descriptionHelper")}
                 </p>
               </div>
             </CardContent>
@@ -158,12 +161,12 @@ export default function NewGroupPage() {
           <div className="flex justify-end space-x-4">
             <Link href="/dashboard/groups">
               <Button type="button" variant="outline" disabled={isLoading}>
-                İptal
+                {t("cancel")}
               </Button>
             </Link>
             <Button type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Grubu Oluştur
+              {t("createGroup")}
             </Button>
           </div>
         </form>
@@ -171,28 +174,29 @@ export default function NewGroupPage() {
         {/* Info Card */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="text-lg">📋 Grup Yönetimi Rehberi</CardTitle>
+            <CardTitle className="text-lg">
+              {t("groupManagementGuide")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-gray-600">
             <div>
-              <strong>Grup Oluşturduktan Sonra:</strong>
+              <strong>{t("afterCreatingGroup")}</strong>
               <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>Test kullanıcılarını gruba ekleyebilirsiniz</li>
-                <li>Uygulamalara erişim izni verebilirsiniz</li>
-                <li>Grup ayarlarını düzenleyebilirsiniz</li>
+                <li>{t("canAddTestUsers")}</li>
+                <li>{t("canGrantAppAccess")}</li>
+                <li>{t("canEditGroupSettings")}</li>
               </ul>
             </div>
             <div>
-              <strong>Üye Yönetimi:</strong> Sadece Admin ve Editor rolündeki
-              kullanıcılar grup üyelerini yönetebilir
+              <strong>{t("memberManagement")}</strong>{" "}
+              {t("memberManagementDescription")}
             </div>
             <div>
-              <strong>Uygulama Erişimi:</strong> Gruplara verilen erişim
-              izinleri, o gruptaki tüm üyeler için geçerlidir
+              <strong>{t("appAccessManagement")}</strong>{" "}
+              {t("appAccessDescription")}
             </div>
             <div>
-              <strong>Güvenlik:</strong> Grup üyeleri sadece kendilerine atanan
-              uygulamaları görebilir ve indirebilir
+              <strong>{t("security")}</strong> {t("securityDescription")}
             </div>
           </CardContent>
         </Card>
