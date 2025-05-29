@@ -34,6 +34,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { DownloadButton } from "@/components/dashboard/download-button";
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface App {
   id: string;
@@ -67,6 +70,7 @@ export default function TesterDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [platformFilter, setPlatformFilter] = useState<string>("ALL");
+  const { t } = useTranslation("common");
 
   useEffect(() => {
     fetchApps();
@@ -90,14 +94,14 @@ export default function TesterDashboardPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Uygulamalar yüklenirken hata oluştu");
+        toast.error(data.error || t("errorLoadingApps"));
         setApps([]);
         return;
       }
 
       setApps(data.apps);
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
       setApps([]);
     } finally {
       setIsLoading(false);
@@ -142,11 +146,11 @@ export default function TesterDashboardPage() {
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
       <Badge variant="default" className="bg-green-600">
-        Android
+        {t("android")}
       </Badge>
     ) : (
       <Badge variant="default" className="bg-blue-600">
-        iOS
+        {t("ios")}
       </Badge>
     );
   };
@@ -175,7 +179,7 @@ export default function TesterDashboardPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Uygulamalar yükleniyor...</p>
+          <p className="text-gray-600">{t("appsLoading")}</p>
         </div>
       </div>
     );
@@ -190,30 +194,33 @@ export default function TesterDashboardPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Smartphone className="mr-3 h-8 w-8" />
-                Test Uygulamaları
+                {t("testApps")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
                 {session?.user?.activeOrganization
-                  ? `${session.user.activeOrganization.name} organizasyonunda size atanan test uygulamalarını görüntüleyin ve indirin`
-                  : "Size atanan test uygulamalarını görüntüleyin ve indirin"}
+                  ? t("testAppsDescriptionWithOrg", {
+                      organizationName: session.user.activeOrganization.name,
+                    })
+                  : t("testAppsDescription")}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <div className="w-64">
                 <OrganizationSwitcher />
               </div>
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Badge variant="secondary" className="text-sm">
-                Test Kullanıcısı
+                {t("tester")}
               </Badge>
               <Link href="/auth/signout">
                 <Button variant="outline" size="sm">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
+                  {t("signOut")}
                 </Button>
               </Link>
             </div>
@@ -227,7 +234,7 @@ export default function TesterDashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Toplam Uygulama
+                {t("totalApps")}
               </CardTitle>
               <Smartphone className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -238,7 +245,9 @@ export default function TesterDashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Android</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t("android")}
+              </CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -248,7 +257,7 @@ export default function TesterDashboardPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">iOS</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("ios")}</CardTitle>
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -259,7 +268,7 @@ export default function TesterDashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Toplam İndirme
+                {t("totalDownloads")}
               </CardTitle>
               <Download className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -272,17 +281,17 @@ export default function TesterDashboardPage() {
         {/* Filters */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Filtrele ve Ara</CardTitle>
-            <CardDescription>
-              Uygulamaları platform ve isme göre filtreleyin
-            </CardDescription>
+            <CardTitle>
+              {t("filter")} ve {t("search")}
+            </CardTitle>
+            <CardDescription>{t("filterByPlatform")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <form onSubmit={handleSearch} className="flex space-x-2">
                   <Input
-                    placeholder="Uygulama adı veya paket adı..."
+                    placeholder={t("searchApps")}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -298,21 +307,21 @@ export default function TesterDashboardPage() {
                   size="sm"
                 >
                   <Filter className="mr-2 h-4 w-4" />
-                  Tümü
+                  {t("allPlatforms")}
                 </Button>
                 <Button
                   variant={platformFilter === "ANDROID" ? "default" : "outline"}
                   onClick={() => setPlatformFilter("ANDROID")}
                   size="sm"
                 >
-                  Android
+                  {t("android")}
                 </Button>
                 <Button
                   variant={platformFilter === "IOS" ? "default" : "outline"}
                   onClick={() => setPlatformFilter("IOS")}
                   size="sm"
                 >
-                  iOS
+                  {t("ios")}
                 </Button>
               </div>
             </div>
@@ -322,11 +331,14 @@ export default function TesterDashboardPage() {
         {/* Apps */}
         <Card>
           <CardHeader>
-            <CardTitle>Erişilebilir Uygulamalar</CardTitle>
+            <CardTitle>{t("accessibleApps")}</CardTitle>
             <CardDescription>
               {session?.user?.activeOrganization
-                ? `${session.user.activeOrganization.name} organizasyonunda size atanan test uygulamaları (${filteredApps.length} uygulama)`
-                : `Size atanan test uygulamaları (${filteredApps.length} uygulama)`}
+                ? t("assignedTestApps", {
+                    organizationName: session.user.activeOrganization.name,
+                    count: filteredApps.length,
+                  })
+                : t("assignedTestAppsNoOrg", { count: filteredApps.length })}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -334,26 +346,24 @@ export default function TesterDashboardPage() {
               <div className="text-center py-8">
                 <Smartphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {apps.length === 0
-                    ? "Henüz uygulama yok"
-                    : "Uygulama bulunamadı"}
+                  {apps.length === 0 ? t("noAppsYet") : t("noAppsFound")}
                 </h3>
                 <p className="text-gray-500">
                   {apps.length === 0
-                    ? "Size henüz test uygulaması atanmamış"
-                    : "Arama kriterlerinize uygun uygulama bulunamadı"}
+                    ? t("noAssignedApps")
+                    : t("noMatchingApps")}
                 </p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Uygulama</TableHead>
-                    <TableHead>Platform</TableHead>
-                    <TableHead>Son Versiyon</TableHead>
-                    <TableHead>Versiyon Sayısı</TableHead>
-                    <TableHead>Son Güncelleme</TableHead>
-                    <TableHead>İşlemler</TableHead>
+                    <TableHead>{t("app")}</TableHead>
+                    <TableHead>{t("platform")}</TableHead>
+                    <TableHead>{t("latestVersion")}</TableHead>
+                    <TableHead>{t("versions")}</TableHead>
+                    <TableHead>{t("lastUpdate")}</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -375,16 +385,18 @@ export default function TesterDashboardPage() {
                               v{app.versions[0].version}
                             </div>
                             <div className="text-sm text-gray-500">
-                              Build {app.versions[0].buildNumber}
+                              {t("build")} {app.versions[0].buildNumber}
                             </div>
                           </div>
                         ) : (
-                          <span className="text-gray-400">Versiyon yok</span>
+                          <span className="text-gray-400">
+                            {t("noVersion")}
+                          </span>
                         )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {app._count.versions} versiyon
+                          {t("versionCount", { count: app._count.versions })}
                         </Badge>
                       </TableCell>
                       <TableCell>

@@ -33,6 +33,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { DownloadButton } from "@/components/dashboard/download-button";
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface App {
   id: string;
@@ -70,6 +73,7 @@ export default function TesterAppDetailPage() {
   const { data: session } = useSession();
   const params = useParams();
   const slug = params.slug as string;
+  const { t } = useTranslation("common");
 
   const [app, setApp] = useState<App | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -93,14 +97,14 @@ export default function TesterAppDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Uygulama yüklenirken hata oluştu");
+        toast.error(data.error || t("errorLoadingApps"));
         setApp(null);
         return;
       }
 
       setApp(data.app);
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
       setApp(null);
     } finally {
       setIsLoading(false);
@@ -118,8 +122,8 @@ export default function TesterAppDetailPage() {
   };
 
   const formatFileSize = (bytes: number) => {
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    if (bytes === 0) return "0 Bytes";
+    const sizes = [t("bytes"), t("kb"), t("mb"), t("gb")];
+    if (bytes === 0) return `0 ${t("bytes")}`;
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
   };
@@ -127,11 +131,11 @@ export default function TesterAppDetailPage() {
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
       <Badge variant="default" className="bg-green-600">
-        Android
+        {t("android")}
       </Badge>
     ) : (
       <Badge variant="default" className="bg-blue-600">
-        iOS
+        {t("ios")}
       </Badge>
     );
   };
@@ -149,7 +153,7 @@ export default function TesterAppDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Uygulama yükleniyor...</p>
+          <p className="text-gray-600">{t("appLoading")}</p>
         </div>
       </div>
     );
@@ -161,15 +165,13 @@ export default function TesterAppDetailPage() {
         <div className="text-center">
           <Smartphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Uygulama bulunamadı
+            {t("appNotFound")}
           </h3>
-          <p className="text-gray-500 mb-4">
-            Bu uygulamaya erişim yetkiniz yok veya uygulama mevcut değil
-          </p>
+          <p className="text-gray-500 mb-4">{t("noAccessToApp")}</p>
           <Link href="/dashboard/tester">
             <Button>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Geri Dön
+              {t("goBack")}
             </Button>
           </Link>
         </div>
@@ -194,24 +196,25 @@ export default function TesterAppDetailPage() {
               <p className="text-sm text-gray-500">{app.packageName}</p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <div className="w-64">
                 <OrganizationSwitcher />
               </div>
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href="/dashboard/tester">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Uygulamalar
+                  {t("apps")}
                 </Button>
               </Link>
               <Link href="/auth/signout">
                 <Button variant="outline" size="sm">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
+                  {t("signOut")}
                 </Button>
               </Link>
             </div>
@@ -225,7 +228,7 @@ export default function TesterAppDetailPage() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Uygulama Bilgileri</CardTitle>
+                <CardTitle>{t("appName")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {app.description && (
@@ -238,14 +241,16 @@ export default function TesterAppDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-medium text-gray-900 mb-1">
-                      Paket Adı
+                      {t("packageName")}
                     </h4>
                     <p className="text-gray-600 font-mono text-sm">
                       {app.packageName}
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-1">Platform</h4>
+                    <h4 className="font-medium text-gray-900 mb-1">
+                      {t("platform")}
+                    </h4>
                     <div>{getPlatformBadge(app.platform)}</div>
                   </div>
                 </div>
@@ -253,13 +258,13 @@ export default function TesterAppDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-medium text-gray-900 mb-1">
-                      Oluşturan
+                      {t("createdBy")}
                     </h4>
                     <p className="text-gray-600">{app.createdBy.name}</p>
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 mb-1">
-                      Oluşturulma Tarihi
+                      {t("createdOn")}
                     </h4>
                     <p className="text-gray-600">{formatDate(app.createdAt)}</p>
                   </div>
@@ -273,7 +278,7 @@ export default function TesterAppDetailPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Toplam Versiyon
+                  {t("totalVersions")}
                 </CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -285,7 +290,7 @@ export default function TesterAppDetailPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  Toplam İndirme
+                  {t("totalDownloads")}
                 </CardTitle>
                 <Download className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
@@ -298,7 +303,7 @@ export default function TesterAppDetailPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Son Versiyon
+                    {t("latestVersion")}
                   </CardTitle>
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -318,15 +323,15 @@ export default function TesterAppDetailPage() {
         {/* Versions */}
         <Card>
           <CardHeader>
-            <CardTitle>Mevcut Versiyonlar</CardTitle>
-            <CardDescription>Bu uygulamanın tüm versiyonları</CardDescription>
+            <CardTitle>{t("allVersions")}</CardTitle>
+            <CardDescription>{t("availableVersions")}</CardDescription>
           </CardHeader>
           <CardContent>
             {app.versions.length === 0 ? (
               <div className="text-center py-8">
                 <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Henüz versiyon yok
+                  {t("noVersion")}
                 </h3>
                 <p className="text-gray-500">
                   Bu uygulama için henüz versiyon yüklenmemiş
@@ -336,13 +341,13 @@ export default function TesterAppDetailPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Versiyon</TableHead>
-                    <TableHead>Build</TableHead>
-                    <TableHead>Dosya Boyutu</TableHead>
-                    <TableHead>İndirme</TableHead>
-                    <TableHead>Yükleyen</TableHead>
+                    <TableHead>{t("version")}</TableHead>
+                    <TableHead>{t("build")}</TableHead>
+                    <TableHead>{t("fileSize")}</TableHead>
+                    <TableHead>{t("downloads")}</TableHead>
+                    <TableHead>{t("uploadedBy")}</TableHead>
                     <TableHead>Tarih</TableHead>
-                    <TableHead>İşlemler</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -353,7 +358,9 @@ export default function TesterAppDetailPage() {
                       </TableCell>
                       <TableCell>{version.buildNumber}</TableCell>
                       <TableCell>{formatFileSize(version.fileSize)}</TableCell>
-                      <TableCell>{version.downloadCount}</TableCell>
+                      <TableCell>
+                        {t("downloadedTimes", { count: version.downloadCount })}
+                      </TableCell>
                       <TableCell>{version.uploadedBy.name}</TableCell>
                       <TableCell>{formatDate(version.createdAt)}</TableCell>
                       <TableCell>
