@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 function SignUpForm() {
   const [formData, setFormData] = useState({
@@ -29,6 +32,7 @@ function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation("common");
 
   // Get invite code from URL if present
   useState(() => {
@@ -52,7 +56,7 @@ function SignUpForm() {
     setSuccess("");
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Şifreler eşleşmiyor");
+      setError(t("passwordsDoNotMatch"));
       setIsLoading(false);
       return;
     }
@@ -75,15 +79,15 @@ function SignUpForm() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Bir hata oluştu");
+        setError(data.error || t("signUpError"));
       } else {
-        setSuccess("Hesabınız başarıyla oluşturuldu! Giriş yapabilirsiniz.");
+        setSuccess(t("accountCreatedSuccess"));
         setTimeout(() => {
           router.push("/auth/signin");
         }, 2000);
       }
     } catch (error) {
-      setError("Bir hata oluştu");
+      setError(t("signUpError"));
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +98,7 @@ function SignUpForm() {
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold text-center">PubApp</CardTitle>
         <CardDescription className="text-center">
-          Yeni hesap oluşturun
+          {t("createNewAccount")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -112,12 +116,12 @@ function SignUpForm() {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="name">Ad Soyad</Label>
+            <Label htmlFor="name">{t("fullName")}</Label>
             <Input
               id="name"
               name="name"
               type="text"
-              placeholder="Adınız Soyadınız"
+              placeholder={t("fullNamePlaceholder")}
               value={formData.name}
               onChange={handleChange}
               required
@@ -126,7 +130,7 @@ function SignUpForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t("email")}</Label>
             <Input
               id="email"
               name="email"
@@ -140,7 +144,7 @@ function SignUpForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Şifre</Label>
+            <Label htmlFor="password">{t("password")}</Label>
             <Input
               id="password"
               name="password"
@@ -154,7 +158,7 @@ function SignUpForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Şifre Tekrarı</Label>
+            <Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
             <Input
               id="confirmPassword"
               name="confirmPassword"
@@ -168,12 +172,12 @@ function SignUpForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="inviteCode">Davet Kodu (Opsiyonel)</Label>
+            <Label htmlFor="inviteCode">{t("inviteCodeOptional")}</Label>
             <Input
               id="inviteCode"
               name="inviteCode"
               type="text"
-              placeholder="Davet kodunuz varsa giriniz"
+              placeholder={t("inviteCodePlaceholder")}
               value={formData.inviteCode}
               onChange={handleChange}
               disabled={isLoading}
@@ -182,17 +186,17 @@ function SignUpForm() {
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Kayıt Ol
+            {isLoading ? t("signingUp") : t("signUp")}
           </Button>
         </form>
 
         <div className="mt-4 text-center text-sm">
-          <span className="text-gray-600">Zaten hesabınız var mı? </span>
+          <span className="text-gray-600">{t("alreadyHaveAccount")} </span>
           <Link
             href="/auth/signin"
             className="text-blue-600 hover:text-blue-500"
           >
-            Giriş yapın
+            {t("signIn")}
           </Link>
         </div>
       </CardContent>
@@ -203,6 +207,10 @@ function SignUpForm() {
 export default function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
+
       <Suspense
         fallback={
           <Card className="w-full max-w-md">

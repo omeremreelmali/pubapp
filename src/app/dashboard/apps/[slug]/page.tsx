@@ -44,6 +44,9 @@ import {
 import Link from "next/link";
 import { DownloadButton } from "@/components/dashboard/download-button";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface TagData {
   id: string;
@@ -91,6 +94,7 @@ interface AppData {
 }
 
 export default function AppDetailPage() {
+  const { t } = useTranslation("common");
   const params = useParams();
   const slug = params.slug as string;
 
@@ -117,13 +121,13 @@ export default function AppDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Uygulama yüklenirken hata oluştu");
+        toast.error(data.error || t("appLoadError"));
         return;
       }
 
       setApp(data.app);
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -174,7 +178,7 @@ export default function AppDetailPage() {
   };
 
   const handleDeleteVersion = async (versionId: string) => {
-    if (!confirm("Bu versiyonu silmek istediğinizden emin misiniz?")) {
+    if (!confirm(t("deleteVersionConfirm"))) {
       return;
     }
 
@@ -186,14 +190,14 @@ export default function AppDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Versiyon silinirken hata oluştu");
+        toast.error(data.error || t("versionDeleteError"));
         return;
       }
 
-      toast.success("Versiyon başarıyla silindi");
+      toast.success(t("versionDeletedSuccess"));
       fetchAppData(); // Refresh data
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
@@ -209,11 +213,11 @@ export default function AppDetailPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "IPA analizi başarısız");
+        toast.error(data.error || t("ipaAnalysisError"));
         return;
       }
 
-      toast.success("IPA analizi tamamlandı!");
+      toast.success(t("ipaAnalysisSuccess"));
 
       // Show analysis results
       const info = data.ipaInfo;
@@ -225,7 +229,7 @@ export default function AppDetailPage() {
 
       fetchAppData(); // Refresh data
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
@@ -239,11 +243,11 @@ export default function AppDetailPage() {
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
       <Badge variant="default" className="bg-green-600">
-        Android
+        {t("android")}
       </Badge>
     ) : (
       <Badge variant="default" className="bg-blue-600">
-        iOS
+        {t("ios")}
       </Badge>
     );
   };
@@ -259,8 +263,8 @@ export default function AppDetailPage() {
   };
 
   const formatFileSize = (bytes: number) => {
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    if (bytes === 0) return "0 Bytes";
+    const sizes = [t("bytes"), t("kb"), t("mb"), t("gb")];
+    if (bytes === 0) return `0 ${t("bytes")}`;
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
   };
@@ -278,7 +282,7 @@ export default function AppDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Uygulama yükleniyor...</p>
+          <p className="text-gray-600">{t("appsLoading")}</p>
         </div>
       </div>
     );
@@ -289,13 +293,11 @@ export default function AppDetailPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Uygulama bulunamadı
+            {t("appNotFound")}
           </h2>
-          <p className="text-gray-600 mb-4">
-            Aradığınız uygulama mevcut değil veya erişim yetkiniz yok.
-          </p>
+          <p className="text-gray-600 mb-4">{t("appNotFoundDescription")}</p>
           <Link href="/dashboard/apps">
-            <Button>Uygulamalara Dön</Button>
+            <Button>{t("backToApps")}</Button>
           </Link>
         </div>
       </div>
@@ -319,21 +321,22 @@ export default function AppDetailPage() {
               <p className="text-sm text-gray-500">{app.packageName}</p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href="/dashboard/apps">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Uygulamalar
+                  {t("apps")}
                 </Button>
               </Link>
               <Link href={`/dashboard/apps/${app.slug}/versions/new`}>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  Yeni Versiyon
+                  {t("newVersion")}
                 </Button>
               </Link>
             </div>
@@ -347,12 +350,14 @@ export default function AppDetailPage() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
-                <CardTitle>Uygulama Bilgileri</CardTitle>
+                <CardTitle>{t("appInfo")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {app.description && (
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Açıklama</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      {t("description")}
+                    </h4>
                     <p className="text-gray-600">{app.description}</p>
                   </div>
                 )}
@@ -360,14 +365,16 @@ export default function AppDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-medium text-gray-900 mb-1">
-                      Paket Adı
+                      {t("packageName")}
                     </h4>
                     <p className="text-gray-600 font-mono text-sm">
                       {app.packageName}
                     </p>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-1">Platform</h4>
+                    <h4 className="font-medium text-gray-900 mb-1">
+                      {t("platform")}
+                    </h4>
                     <div>{getPlatformBadge(app.platform)}</div>
                   </div>
                 </div>
@@ -375,13 +382,13 @@ export default function AppDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-medium text-gray-900 mb-1">
-                      Oluşturan
+                      {t("createdBy")}
                     </h4>
                     <p className="text-gray-600">{app.createdBy.name}</p>
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-900 mb-1">
-                      Oluşturulma Tarihi
+                      {t("createdAt")}
                     </h4>
                     <p className="text-gray-600">{formatDate(app.createdAt)}</p>
                   </div>
@@ -394,15 +401,19 @@ export default function AppDetailPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">İstatistikler</CardTitle>
+                <CardTitle className="text-lg">{t("statistics")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Toplam Versiyon</span>
+                  <span className="text-sm text-gray-600">
+                    {t("totalVersions")}
+                  </span>
                   <Badge variant="secondary">{app._count.versions}</Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Toplam İndirme</span>
+                  <span className="text-sm text-gray-600">
+                    {t("totalDownloads")}
+                  </span>
                   <Badge variant="secondary">{getTotalDownloads()}</Badge>
                 </div>
               </CardContent>
@@ -416,11 +427,9 @@ export default function AppDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Filter className="mr-2 h-5 w-5" />
-                Tag Filtreleri
+                {t("tagFilters")}
               </CardTitle>
-              <CardDescription>
-                Versiyonları tag'lere göre filtreleyin
-              </CardDescription>
+              <CardDescription>{t("tagFiltersDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2 mb-4">
@@ -447,10 +456,10 @@ export default function AppDetailPage() {
               {selectedTags.length > 0 && (
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-600">
-                    {filteredVersions.length} versiyon gösteriliyor
+                    {t("versionsShowing", { count: filteredVersions.length })}
                   </p>
                   <Button variant="outline" size="sm" onClick={clearFilters}>
-                    Filtreleri Temizle
+                    {t("clearFilters")}
                   </Button>
                 </div>
               )}
@@ -461,10 +470,8 @@ export default function AppDetailPage() {
         {/* Versions */}
         <Card>
           <CardHeader>
-            <CardTitle>Versiyonlar</CardTitle>
-            <CardDescription>
-              Uygulamanın tüm versiyonları ve indirme linkleri
-            </CardDescription>
+            <CardTitle>{t("versions")}</CardTitle>
+            <CardDescription>{t("versionsDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             {filteredVersions.length === 0 ? (
@@ -472,19 +479,19 @@ export default function AppDetailPage() {
                 <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
                   {selectedTags.length > 0
-                    ? "Seçilen tag'lere uygun versiyon bulunamadı"
-                    : "Henüz versiyon yok"}
+                    ? t("noVersionsWithTags")
+                    : t("noVersionsYet")}
                 </h3>
                 <p className="text-gray-500 text-center mb-4">
-                  İlk versiyonunuzu yükleyerek başlayın
+                  {t("noVersionsDescription")}
                 </p>
                 {selectedTags.length > 0 ? (
-                  <Button onClick={clearFilters}>Filtreleri Temizle</Button>
+                  <Button onClick={clearFilters}>{t("clearFilters")}</Button>
                 ) : (
                   <Link href={`/dashboard/apps/${app.slug}/versions/new`}>
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
-                      İlk Versiyonu Yükle
+                      {t("uploadFirstVersion")}
                     </Button>
                   </Link>
                 )}
@@ -493,13 +500,13 @@ export default function AppDetailPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Versiyon</TableHead>
-                    <TableHead>Tag'ler</TableHead>
-                    <TableHead>Dosya</TableHead>
-                    <TableHead>Yükleyen</TableHead>
-                    <TableHead>Tarih</TableHead>
-                    <TableHead>İndirme</TableHead>
-                    <TableHead className="text-right">İşlemler</TableHead>
+                    <TableHead>{t("version")}</TableHead>
+                    <TableHead>{t("tags")}</TableHead>
+                    <TableHead>{t("file")}</TableHead>
+                    <TableHead>{t("uploader")}</TableHead>
+                    <TableHead>{t("date")}</TableHead>
+                    <TableHead>{t("downloads")}</TableHead>
+                    <TableHead className="text-right">{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -509,7 +516,7 @@ export default function AppDetailPage() {
                         <div>
                           <div className="font-medium">v{version.version}</div>
                           <div className="text-sm text-gray-500">
-                            Build {version.buildNumber}
+                            {t("build")} {version.buildNumber}
                           </div>
                         </div>
                       </TableCell>
@@ -529,7 +536,7 @@ export default function AppDetailPage() {
                           ))}
                           {version.tags.length === 0 && (
                             <span className="text-sm text-gray-400">
-                              Tag yok
+                              {t("noTags")}
                             </span>
                           )}
                         </div>
@@ -565,7 +572,7 @@ export default function AppDetailPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {version.downloadCount} indirme
+                          {t("downloadCount", { count: version.downloadCount })}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -577,7 +584,7 @@ export default function AppDetailPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleAnalyzeIPA(version.id)}
-                                title="IPA Analiz Et"
+                                title={t("ipaAnalyze")}
                               >
                                 <Search className="h-4 w-4" />
                               </Button>
@@ -587,7 +594,7 @@ export default function AppDetailPage() {
                                 onClick={() =>
                                   handleDownloadProfile(version.id)
                                 }
-                                title="Configuration Profile İndir"
+                                title={t("downloadProfile")}
                                 className="bg-blue-50 hover:bg-blue-100"
                               >
                                 <Settings className="h-4 w-4" />

@@ -24,8 +24,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Smartphone, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function NewAppPage() {
+  const { t } = useTranslation("common");
   const [formData, setFormData] = useState({
     name: "",
     packageName: "",
@@ -69,13 +73,13 @@ export default function NewAppPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Bir hata oluştu");
+        setError(data.error || t("errorOccurred"));
       } else {
-        toast.success("Uygulama başarıyla oluşturuldu!");
+        toast.success(t("appCreatedSuccess"));
         router.push(`/dashboard/apps/${data.app.slug}`);
       }
     } catch (error) {
-      setError("Bir hata oluştu");
+      setError(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -100,22 +104,23 @@ export default function NewAppPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Smartphone className="mr-3 h-8 w-8" />
-                Yeni Uygulama Oluştur
+                {t("createNewApp")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Yeni bir mobil uygulama ekleyin
+                {t("createNewAppDescription")}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href="/dashboard/apps">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Uygulamalar
+                  {t("apps")}
                 </Button>
               </Link>
             </div>
@@ -126,10 +131,8 @@ export default function NewAppPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Uygulama Bilgileri</CardTitle>
-            <CardDescription>
-              Uygulamanızın temel bilgilerini girin
-            </CardDescription>
+            <CardTitle>{t("appInfo")}</CardTitle>
+            <CardDescription>{t("appInfoDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -140,30 +143,28 @@ export default function NewAppPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="name">Uygulama Adı *</Label>
+                <Label htmlFor="name">{t("appNameRequired")}</Label>
                 <Input
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="Örn: My Awesome App"
+                  placeholder={t("appNamePlaceholder")}
                   value={formData.name}
                   onChange={handleChange}
                   required
                   disabled={isLoading}
                 />
-                <p className="text-xs text-gray-500">
-                  Uygulamanızın görünen adı
-                </p>
+                <p className="text-xs text-gray-500">{t("appNameHelper")}</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="packageName">Paket Adı *</Label>
+                <Label htmlFor="packageName">{t("packageNameRequired")}</Label>
                 <div className="flex space-x-2">
                   <Input
                     id="packageName"
                     name="packageName"
                     type="text"
-                    placeholder="com.company.app"
+                    placeholder={t("packageNamePlaceholder")}
                     value={formData.packageName}
                     onChange={handleChange}
                     required
@@ -176,71 +177,69 @@ export default function NewAppPage() {
                     onClick={generatePackageName}
                     disabled={isLoading || !formData.name}
                   >
-                    Otomatik
+                    {t("auto")}
                   </Button>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Benzersiz paket tanımlayıcısı (reverse domain notation)
+                  {t("packageNameHelper")}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="platform">Platform *</Label>
+                <Label htmlFor="platform">{t("platformRequired")}</Label>
                 <Select
                   value={formData.platform}
                   onValueChange={handlePlatformChange}
                   disabled={isLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Platform seçiniz" />
+                    <SelectValue placeholder={t("selectPlatform")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ANDROID">
                       <div className="flex items-center">
                         <div className="w-3 h-3 bg-green-600 rounded-full mr-2"></div>
-                        Android
+                        {t("android")}
                       </div>
                     </SelectItem>
                     <SelectItem value="IOS">
                       <div className="flex items-center">
                         <div className="w-3 h-3 bg-blue-600 rounded-full mr-2"></div>
-                        iOS
+                        {t("ios")}
                       </div>
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-gray-500">
-                  Uygulamanızın hedef platformu
-                </p>
+                <p className="text-xs text-gray-500">{t("platformHelper")}</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Açıklama</Label>
+                <Label htmlFor="description">{t("descriptionOptional")}</Label>
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Uygulamanız hakkında kısa bir açıklama..."
+                  placeholder={t("descriptionPlaceholder")}
                   value={formData.description}
                   onChange={handleChange}
                   disabled={isLoading}
                   rows={4}
                 />
                 <p className="text-xs text-gray-500">
-                  Opsiyonel: Uygulamanızın ne yaptığını açıklayın
+                  {t("descriptionHelper")}
                 </p>
               </div>
 
               <div className="flex justify-end space-x-4 pt-6">
                 <Link href="/dashboard/apps">
                   <Button type="button" variant="outline" disabled={isLoading}>
-                    İptal
+                    {t("cancel")}
                   </Button>
                 </Link>
                 <Button type="submit" disabled={isLoading}>
                   {isLoading && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Uygulama Oluştur
+                  {t("createApp")}
                 </Button>
               </div>
             </form>
@@ -250,20 +249,20 @@ export default function NewAppPage() {
         {/* Info Card */}
         <Card className="mt-6">
           <CardHeader>
-            <CardTitle className="text-lg">💡 İpuçları</CardTitle>
+            <CardTitle className="text-lg">{t("tips")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-gray-600">
             <div>
-              <strong>Paket Adı:</strong> Benzersiz olmalı ve reverse domain
-              notation kullanmalı (örn: com.sirketadi.uygulamaadi)
+              <strong>{t("packageNameTip").split(":")[0]}:</strong>{" "}
+              {t("packageNameTip").split(":")[1]}
             </div>
             <div>
-              <strong>Platform:</strong> Her platform için ayrı uygulama
-              oluşturmanız gerekir
+              <strong>{t("platformTip").split(":")[0]}:</strong>{" "}
+              {t("platformTip").split(":")[1]}
             </div>
             <div>
-              <strong>Versiyon Yönetimi:</strong> Uygulama oluşturduktan sonra
-              farklı versiyonlar yükleyebilirsiniz
+              <strong>{t("versionManagementTip").split(":")[0]}:</strong>{" "}
+              {t("versionManagementTip").split(":")[1]}
             </div>
           </CardContent>
         </Card>

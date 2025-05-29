@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface AppData {
   id: string;
@@ -58,6 +61,7 @@ interface AppData {
 }
 
 export default function AppsPage() {
+  const { t } = useTranslation("common");
   const { data: session } = useSession();
   const [apps, setApps] = useState<AppData[]>([]);
   const [filteredApps, setFilteredApps] = useState<AppData[]>([]);
@@ -114,11 +118,11 @@ export default function AppsPage() {
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
       <Badge variant="default" className="bg-green-600">
-        Android
+        {t("android")}
       </Badge>
     ) : (
       <Badge variant="default" className="bg-blue-600">
-        iOS
+        {t("ios")}
       </Badge>
     );
   };
@@ -136,14 +140,14 @@ export default function AppsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Uygulamalar yükleniyor...</p>
+          <p className="text-gray-600">{t("appsLoading")}</p>
         </div>
       </div>
     );
   }
 
   if (!session?.user) {
-    return <div>Giriş yapmanız gerekiyor</div>;
+    return <div>{t("loginRequired")}</div>;
   }
 
   const getTotalDownloads = (app: any) => {
@@ -162,17 +166,16 @@ export default function AppsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Smartphone className="mr-3 h-8 w-8" />
-                Uygulamalar
+                {t("apps")}
               </h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Organizasyonunuzdaki tüm uygulamaları yönetin
-              </p>
+              <p className="mt-1 text-sm text-gray-500">{t("manageApps")}</p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               {(session?.user?.activeOrganization?.role === "ADMIN" ||
@@ -180,14 +183,14 @@ export default function AppsPage() {
                 <Link href="/dashboard/apps/new">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Yeni Uygulama
+                    {t("newApp")}
                   </Button>
                 </Link>
               )}
               <Link href="/auth/signout">
                 <Button variant="outline">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
+                  {t("signOut")}
                 </Button>
               </Link>
             </div>
@@ -204,7 +207,7 @@ export default function AppsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="Uygulama ara..."
+                    placeholder={t("searchApp")}
                     className="pl-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -213,12 +216,12 @@ export default function AppsPage() {
               </div>
               <Select value={platformFilter} onValueChange={setPlatformFilter}>
                 <SelectTrigger className="w-full md:w-48">
-                  <SelectValue placeholder="Platform" />
+                  <SelectValue placeholder={t("platform")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tüm Platformlar</SelectItem>
-                  <SelectItem value="ANDROID">Android</SelectItem>
-                  <SelectItem value="IOS">iOS</SelectItem>
+                  <SelectItem value="all">{t("allPlatforms")}</SelectItem>
+                  <SelectItem value="ANDROID">{t("android")}</SelectItem>
+                  <SelectItem value="IOS">{t("ios")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -231,9 +234,9 @@ export default function AppsPage() {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {searchTerm || platformFilter !== "all"
-                  ? "Filtrelenmiş"
-                  : "Toplam"}{" "}
-                Uygulama
+                  ? t("filtered")
+                  : t("total")}{" "}
+                {t("totalApp")}
               </CardTitle>
               <Smartphone className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -241,7 +244,7 @@ export default function AppsPage() {
               <div className="text-2xl font-bold">{filteredApps.length}</div>
               {(searchTerm || platformFilter !== "all") && (
                 <p className="text-xs text-muted-foreground">
-                  Toplam: {apps.length}
+                  {t("total")}: {apps.length}
                 </p>
               )}
             </CardContent>
@@ -249,7 +252,9 @@ export default function AppsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Android</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t("android")}
+              </CardTitle>
               <Smartphone className="h-4 w-4 text-green-600" />
             </CardHeader>
             <CardContent>
@@ -261,7 +266,7 @@ export default function AppsPage() {
               </div>
               {(searchTerm || platformFilter !== "all") && (
                 <p className="text-xs text-muted-foreground">
-                  Toplam:{" "}
+                  {t("total")}:{" "}
                   {apps.filter((app) => app.platform === "ANDROID").length}
                 </p>
               )}
@@ -270,7 +275,7 @@ export default function AppsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">iOS</CardTitle>
+              <CardTitle className="text-sm font-medium">{t("ios")}</CardTitle>
               <Smartphone className="h-4 w-4 text-blue-600" />
             </CardHeader>
             <CardContent>
@@ -279,7 +284,8 @@ export default function AppsPage() {
               </div>
               {(searchTerm || platformFilter !== "all") && (
                 <p className="text-xs text-muted-foreground">
-                  Toplam: {apps.filter((app) => app.platform === "IOS").length}
+                  {t("total")}:{" "}
+                  {apps.filter((app) => app.platform === "IOS").length}
                 </p>
               )}
             </CardContent>
@@ -288,7 +294,7 @@ export default function AppsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Toplam Versiyon
+                {t("totalVersions")}
               </CardTitle>
               <Download className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -301,7 +307,7 @@ export default function AppsPage() {
               </div>
               {(searchTerm || platformFilter !== "all") && (
                 <p className="text-xs text-muted-foreground">
-                  Toplam:{" "}
+                  {t("total")}:{" "}
                   {apps.reduce((total, app) => total + app._count.versions, 0)}
                 </p>
               )}
@@ -315,17 +321,17 @@ export default function AppsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Smartphone className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Henüz uygulama yok
+                {t("noAppsYet")}
               </h3>
               <p className="text-gray-500 text-center mb-4">
-                İlk uygulamanızı oluşturarak başlayın
+                {t("noAppsDescription")}
               </p>
               {(session?.user?.activeOrganization?.role === "ADMIN" ||
                 session?.user?.activeOrganization?.role === "EDITOR") && (
                 <Link href="/dashboard/apps/new">
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Yeni Uygulama Oluştur
+                    {t("createNewApp")}
                   </Button>
                 </Link>
               )}
@@ -336,11 +342,10 @@ export default function AppsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Search className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Arama sonucu bulunamadı
+                {t("searchResultNotFound")}
               </h3>
               <p className="text-gray-500 text-center mb-4">
-                "{searchTerm}" araması veya seçilen filtreler için sonuç
-                bulunamadı
+                {t("searchResultDescription", { searchTerm })}
               </p>
               <Button
                 variant="outline"
@@ -349,7 +354,7 @@ export default function AppsPage() {
                   setPlatformFilter("all");
                 }}
               >
-                Filtreleri Temizle
+                {t("clearFilters")}
               </Button>
             </CardContent>
           </Card>
@@ -379,7 +384,7 @@ export default function AppsPage() {
                     <div className="flex items-center justify-between text-sm text-gray-500">
                       <div className="flex items-center">
                         <Download className="h-4 w-4 mr-1" />
-                        {app._count.versions} versiyon
+                        {app._count.versions} {t("versions")}
                       </div>
                       {app.versions[0] && (
                         <div className="flex items-center">
@@ -400,7 +405,7 @@ export default function AppsPage() {
                       </span>
                       <Link href={`/dashboard/apps/${app.slug}`}>
                         <Button variant="outline" size="sm">
-                          Detaylar
+                          {t("details")}
                         </Button>
                       </Link>
                     </div>

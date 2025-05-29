@@ -17,8 +17,12 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Building2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function SetupPage() {
+  const { t } = useTranslation("common");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -54,9 +58,9 @@ export default function SetupPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Bir hata oluştu");
+        setError(data.error || t("organizationCreateError"));
       } else {
-        toast.success("Organizasyon başarıyla oluşturuldu!");
+        toast.success(t("organizationCreatedSuccess"));
 
         // Session'ı güncelle
         await update({
@@ -69,7 +73,7 @@ export default function SetupPage() {
         router.refresh();
       }
     } catch (error) {
-      setError("Bir hata oluştu");
+      setError(t("organizationCreateError"));
     } finally {
       setIsLoading(false);
     }
@@ -77,16 +81,19 @@ export default function SetupPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
             <Building2 className="h-6 w-6 text-blue-600" />
           </div>
           <CardTitle className="text-2xl font-bold">
-            Organizasyon Oluşturun
+            {t("createOrganization")}
           </CardTitle>
           <CardDescription>
-            PubApp'i kullanmaya başlamak için bir organizasyon oluşturun
+            {t("createOrganizationDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -98,12 +105,12 @@ export default function SetupPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="name">Organizasyon Adı *</Label>
+              <Label htmlFor="name">{t("organizationNameRequired")}</Label>
               <Input
                 id="name"
                 name="name"
                 type="text"
-                placeholder="Şirket Adı"
+                placeholder={t("organizationNamePlaceholder")}
                 value={formData.name}
                 onChange={handleChange}
                 required
@@ -112,11 +119,11 @@ export default function SetupPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Açıklama</Label>
+              <Label htmlFor="description">{t("description")}</Label>
               <Textarea
                 id="description"
                 name="description"
-                placeholder="Organizasyon hakkında kısa açıklama (opsiyonel)"
+                placeholder={t("organizationDescriptionPlaceholder")}
                 value={formData.description}
                 onChange={handleChange}
                 disabled={isLoading}
@@ -126,15 +133,12 @@ export default function SetupPage() {
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Organizasyon Oluştur
+              {t("createOrganizationButton")}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-600">
-            <p>
-              Organizasyon oluşturduktan sonra diğer kullanıcıları davet
-              edebilirsiniz.
-            </p>
+            <p>{t("organizationSetupInfo")}</p>
           </div>
         </CardContent>
       </Card>

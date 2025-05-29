@@ -30,6 +30,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface DownloadStats {
   totalDownloads: number;
@@ -69,6 +72,7 @@ interface DownloadStats {
 }
 
 export default function DownloadsPage() {
+  const { t } = useTranslation("common");
   const [stats, setStats] = useState<DownloadStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -82,13 +86,13 @@ export default function DownloadsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "İstatistikler yüklenirken hata oluştu");
+        toast.error(data.error || t("statsLoadError"));
         return;
       }
 
       setStats(data);
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -107,25 +111,25 @@ export default function DownloadsPage() {
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
       <Badge variant="default" className="bg-green-600">
-        Android
+        {t("android")}
       </Badge>
     ) : (
       <Badge variant="default" className="bg-blue-600">
-        iOS
+        {t("ios")}
       </Badge>
     );
   };
 
   const getStatusBadge = (downloadedAt?: string, expiresAt?: string) => {
     if (downloadedAt) {
-      return <Badge variant="default">İndirildi</Badge>;
+      return <Badge variant="default">{t("downloaded")}</Badge>;
     }
 
     if (expiresAt && new Date(expiresAt) < new Date()) {
-      return <Badge variant="destructive">Süresi Doldu</Badge>;
+      return <Badge variant="destructive">{t("expired")}</Badge>;
     }
 
-    return <Badge variant="secondary">Aktif</Badge>;
+    return <Badge variant="secondary">{t("active")}</Badge>;
   };
 
   const getRoleBadge = (role: string) => {
@@ -137,7 +141,11 @@ export default function DownloadsPage() {
 
     return (
       <Badge variant={variants[role as keyof typeof variants] || "outline"}>
-        {role}
+        {role === "ADMIN"
+          ? t("admin")
+          : role === "EDITOR"
+          ? t("editor")
+          : t("tester")}
       </Badge>
     );
   };
@@ -147,7 +155,7 @@ export default function DownloadsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">İstatistikler yükleniyor...</p>
+          <p className="text-gray-600">{t("statsLoading")}</p>
         </div>
       </div>
     );
@@ -162,23 +170,24 @@ export default function DownloadsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Download className="mr-3 h-8 w-8" />
-                İndirme İstatistikleri
+                {t("downloadStats")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Uygulama indirme geçmişi ve istatistikleri
+                {t("downloadStatsDescription")}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href="/auth/signout">
                 <Button variant="outline">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
+                  {t("signOut")}
                 </Button>
               </Link>
             </div>
@@ -194,7 +203,7 @@ export default function DownloadsPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Toplam İndirme
+                    {t("totalDownloads")}
                   </CardTitle>
                   <Download className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -207,7 +216,9 @@ export default function DownloadsPage() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Bugün</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    {t("today")}
+                  </CardTitle>
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -220,7 +231,7 @@ export default function DownloadsPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
-                    Bu Hafta
+                    {t("thisWeek")}
                   </CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
@@ -233,7 +244,9 @@ export default function DownloadsPage() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Bu Ay</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    {t("thisMonth")}
+                  </CardTitle>
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -247,29 +260,27 @@ export default function DownloadsPage() {
             {/* Top Apps */}
             <Card className="mb-8">
               <CardHeader>
-                <CardTitle>En Çok İndirilen Uygulamalar</CardTitle>
-                <CardDescription>
-                  İndirme sayısına göre sıralanmış uygulamalar
-                </CardDescription>
+                <CardTitle>{t("topApps")}</CardTitle>
+                <CardDescription>{t("topAppsDescription")}</CardDescription>
               </CardHeader>
               <CardContent>
                 {stats.topApps.length === 0 ? (
                   <div className="text-center py-8">
                     <Smartphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Henüz indirme yok
+                      {t("noDownloadsYet")}
                     </h3>
                     <p className="text-gray-500">
-                      Henüz hiçbir uygulama indirilmemiş
+                      {t("noDownloadsDescription")}
                     </p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Uygulama</TableHead>
-                        <TableHead>Platform</TableHead>
-                        <TableHead>İndirme Sayısı</TableHead>
+                        <TableHead>{t("app")}</TableHead>
+                        <TableHead>{t("platform")}</TableHead>
+                        <TableHead>{t("downloadCount")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -283,7 +294,7 @@ export default function DownloadsPage() {
                           </TableCell>
                           <TableCell>
                             <Badge variant="secondary">
-                              {item.totalDownloads} indirme
+                              {item.totalDownloads} {t("downloads")}
                             </Badge>
                           </TableCell>
                         </TableRow>
@@ -297,9 +308,9 @@ export default function DownloadsPage() {
             {/* Recent Downloads */}
             <Card>
               <CardHeader>
-                <CardTitle>Son İndirme Linkleri</CardTitle>
+                <CardTitle>{t("recentDownloadLinks")}</CardTitle>
                 <CardDescription>
-                  Oluşturulan son indirme linkleri ve durumları
+                  {t("recentDownloadLinksDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -307,23 +318,23 @@ export default function DownloadsPage() {
                   <div className="text-center py-8">
                     <Download className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Henüz indirme linki yok
+                      {t("noDownloadLinksYet")}
                     </h3>
                     <p className="text-gray-500">
-                      Henüz hiçbir indirme linki oluşturulmamış
+                      {t("noDownloadLinksDescription")}
                     </p>
                   </div>
                 ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Uygulama</TableHead>
-                        <TableHead>Versiyon</TableHead>
-                        <TableHead>Platform</TableHead>
-                        <TableHead>İndiren Kişi</TableHead>
-                        <TableHead>Oluşturulma</TableHead>
-                        <TableHead>Son Kullanma</TableHead>
-                        <TableHead>Durum</TableHead>
+                        <TableHead>{t("app")}</TableHead>
+                        <TableHead>{t("version")}</TableHead>
+                        <TableHead>{t("platform")}</TableHead>
+                        <TableHead>{t("downloader")}</TableHead>
+                        <TableHead>{t("createdAt")}</TableHead>
+                        <TableHead>{t("expiresAt")}</TableHead>
+                        <TableHead>{t("status")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -333,7 +344,7 @@ export default function DownloadsPage() {
                             {download.version.app.name}
                           </TableCell>
                           <TableCell>
-                            v{download.version.version} (Build{" "}
+                            v{download.version.version} ({t("build")}{" "}
                             {download.version.buildNumber})
                           </TableCell>
                           <TableCell>
@@ -379,12 +390,12 @@ export default function DownloadsPage() {
           <div className="text-center py-8">
             <Download className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              İstatistikler yüklenemedi
+              {t("statsLoadFailed")}
             </h3>
             <p className="text-gray-500 mb-4">
-              İndirme istatistikleri yüklenirken bir hata oluştu
+              {t("statsLoadFailedDescription")}
             </p>
-            <Button onClick={fetchDownloadStats}>Tekrar Dene</Button>
+            <Button onClick={fetchDownloadStats}>{t("tryAgain")}</Button>
           </div>
         )}
       </div>

@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface Group {
   id: string;
@@ -59,6 +62,7 @@ interface Group {
 }
 
 export default function GroupsPage() {
+  const { t } = useTranslation("common");
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -78,13 +82,13 @@ export default function GroupsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Gruplar yüklenirken hata oluştu");
+        toast.error(data.error || t("groupsLoadError"));
         return;
       }
 
       setGroups(data.groups);
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -107,11 +111,11 @@ export default function GroupsPage() {
   const getPlatformBadge = (platform: string) => {
     return platform === "ANDROID" ? (
       <Badge variant="default" className="bg-green-600">
-        Android
+        {t("android")}
       </Badge>
     ) : (
       <Badge variant="default" className="bg-blue-600">
-        iOS
+        {t("ios")}
       </Badge>
     );
   };
@@ -134,7 +138,7 @@ export default function GroupsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Gruplar yükleniyor...</p>
+          <p className="text-gray-600">{t("groupsLoading")}</p>
         </div>
       </div>
     );
@@ -149,29 +153,30 @@ export default function GroupsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Users className="mr-3 h-8 w-8" />
-                Test Grupları
+                {t("testGroups")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Test kullanıcılarını gruplar halinde yönetin
+                {t("testGroupsDescription")}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href="/dashboard/groups/new">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  Yeni Grup
+                  {t("newGroup")}
                 </Button>
               </Link>
               <Link href="/auth/signout">
                 <Button variant="outline">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
+                  {t("signOut")}
                 </Button>
               </Link>
             </div>
@@ -184,7 +189,9 @@ export default function GroupsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Toplam Grup</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t("totalGroups")}
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -194,7 +201,9 @@ export default function GroupsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Toplam Üye</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {t("totalMembers")}
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -205,7 +214,7 @@ export default function GroupsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Erişilebilir Uygulama
+                {t("accessibleApps")}
               </CardTitle>
               <Smartphone className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -218,23 +227,21 @@ export default function GroupsPage() {
         {/* Search */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Grup Ara</CardTitle>
-            <CardDescription>
-              Grup adı veya açıklamasına göre arama yapın
-            </CardDescription>
+            <CardTitle>{t("searchGroup")}</CardTitle>
+            <CardDescription>{t("searchGroupDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSearch} className="flex space-x-4">
               <div className="flex-1">
                 <Input
-                  placeholder="Grup adı veya açıklama..."
+                  placeholder={t("groupNameOrDescription")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <Button type="submit">
                 <Search className="mr-2 h-4 w-4" />
-                Ara
+                {t("search")}
               </Button>
               {searchTerm && (
                 <Button
@@ -245,7 +252,7 @@ export default function GroupsPage() {
                     fetchGroups();
                   }}
                 >
-                  Temizle
+                  {t("clear")}
                 </Button>
               )}
             </form>
@@ -257,15 +264,13 @@ export default function GroupsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Gruplar</CardTitle>
-                <CardDescription>
-                  Organizasyonunuzdaki tüm test grupları
-                </CardDescription>
+                <CardTitle>{t("groups")}</CardTitle>
+                <CardDescription>{t("allTestGroups")}</CardDescription>
               </div>
               <Link href="/dashboard/groups/new">
                 <Button size="sm">
                   <Plus className="mr-2 h-4 w-4" />
-                  Yeni Grup
+                  {t("newGroup")}
                 </Button>
               </Link>
             </div>
@@ -275,18 +280,18 @@ export default function GroupsPage() {
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  {searchTerm ? "Grup bulunamadı" : "Henüz grup yok"}
+                  {searchTerm ? t("groupNotFound") : t("noGroupsYet")}
                 </h3>
                 <p className="text-gray-500 mb-4">
                   {searchTerm
-                    ? "Arama kriterlerinize uygun grup bulunamadı"
-                    : "Test kullanıcıları için henüz grup oluşturulmamış"}
+                    ? t("searchCriteriaNoMatch")
+                    : t("noGroupsCreatedYet")}
                 </p>
                 {!searchTerm && (
                   <Link href="/dashboard/groups/new">
                     <Button>
                       <Plus className="mr-2 h-4 w-4" />
-                      İlk Grubu Oluştur
+                      {t("createFirstGroup")}
                     </Button>
                   </Link>
                 )}
@@ -295,12 +300,12 @@ export default function GroupsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Grup Adı</TableHead>
-                    <TableHead>Açıklama</TableHead>
-                    <TableHead>Üye Sayısı</TableHead>
-                    <TableHead>Uygulama Erişimi</TableHead>
-                    <TableHead>Oluşturulma</TableHead>
-                    <TableHead>İşlemler</TableHead>
+                    <TableHead>{t("groupName")}</TableHead>
+                    <TableHead>{t("description")}</TableHead>
+                    <TableHead>{t("memberCount")}</TableHead>
+                    <TableHead>{t("appAccess")}</TableHead>
+                    <TableHead>{t("createdDate")}</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -312,13 +317,13 @@ export default function GroupsPage() {
                       <TableCell>
                         {group.description || (
                           <span className="text-gray-400 italic">
-                            Açıklama yok
+                            {t("noDescription")}
                           </span>
                         )}
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {group._count.members} üye
+                          {group._count.members} {t("members")}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -333,12 +338,12 @@ export default function GroupsPage() {
                           ))}
                           {group.appAccess.length > 2 && (
                             <Badge variant="outline">
-                              +{group.appAccess.length - 2} daha
+                              +{group.appAccess.length - 2} {t("more")}
                             </Badge>
                           )}
                           {group.appAccess.length === 0 && (
                             <span className="text-gray-400 text-sm">
-                              Erişim yok
+                              {t("noAccess")}
                             </span>
                           )}
                         </div>

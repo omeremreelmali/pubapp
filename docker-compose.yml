@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: pubapp
       POSTGRES_PASSWORD: pubapp123
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -29,6 +29,14 @@ services:
       - minio_data:/data
     networks:
       - pubapp-network
+  nextjs:
+    build: .
+    ports:
+      - "3055:3055"
+    environment:
+      NODE_ENV: production
+      PORT: 3055 # Next.js 'PORT' environment variable'ını okur
+    # Eğer .env kullanıyorsan, .env dosyasına da PORT=3055 ekle
 
   # Redis for caching (optional)
   redis:

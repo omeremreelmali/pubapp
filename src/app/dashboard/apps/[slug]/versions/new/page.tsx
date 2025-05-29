@@ -32,6 +32,9 @@ import {
   formatFileSize,
   ALLOWED_EXTENSIONS,
 } from "@/lib/file-utils";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface TagData {
   id: string;
@@ -46,6 +49,7 @@ interface AppData {
 }
 
 export default function NewVersionPage() {
+  const { t } = useTranslation("common");
   const [formData, setFormData] = useState({
     version: "",
     buildNumber: "",
@@ -117,7 +121,7 @@ export default function NewVersionPage() {
   const handleFileSelect = useCallback(
     (selectedFile: File) => {
       if (!app) {
-        setError("Uygulama bilgisi yükleniyor, lütfen bekleyin");
+        setError(t("appInfoLoading"));
         return;
       }
 
@@ -127,14 +131,14 @@ export default function NewVersionPage() {
       );
 
       if (!validation.isValid) {
-        setError(validation.error || "Geçersiz dosya");
+        setError(validation.error || t("invalidFile"));
         return;
       }
 
       setFile(selectedFile);
       setError("");
     },
-    [app]
+    [app, t]
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,7 +176,7 @@ export default function NewVersionPage() {
     e.preventDefault();
 
     if (!file) {
-      setError("Lütfen bir dosya seçin");
+      setError(t("pleaseSelectFile"));
       return;
     }
 
@@ -210,13 +214,13 @@ export default function NewVersionPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Bir hata oluştu");
+        setError(data.error || t("errorOccurred"));
       } else {
-        toast.success("Versiyon başarıyla yüklendi!");
+        toast.success(t("versionUploadedSuccess"));
         router.push(`/dashboard/apps/${slug}`);
       }
     } catch (error) {
-      setError("Bir hata oluştu");
+      setError(t("errorOccurred"));
     } finally {
       setIsLoading(false);
       setUploadProgress(0);
@@ -237,26 +241,29 @@ export default function NewVersionPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Upload className="mr-3 h-8 w-8" />
-                Yeni Versiyon Yükle
+                {t("uploadNewVersion")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
                 {app
-                  ? `${app.name} (${
-                      app.platform === "ANDROID" ? "Android" : "iOS"
-                    }) için yeni bir versiyon yükleyin`
-                  : "Uygulamanız için yeni bir versiyon yükleyin"}
+                  ? t("uploadNewVersionFor", {
+                      appName: app.name,
+                      platform:
+                        app.platform === "ANDROID" ? t("android") : t("ios"),
+                    })
+                  : t("uploadVersionGeneric")}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href={`/dashboard/apps/${slug}`}>
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Geri Dön
+                  {t("goBack")}
                 </Button>
               </Link>
             </div>
@@ -269,13 +276,13 @@ export default function NewVersionPage() {
           {/* File Upload */}
           <Card>
             <CardHeader>
-              <CardTitle>Dosya Yükleme</CardTitle>
+              <CardTitle>{t("fileUpload")}</CardTitle>
               <CardDescription>
                 {app
                   ? app.platform === "ANDROID"
-                    ? "APK veya AAB dosyanızı yükleyin"
-                    : "IPA dosyanızı yükleyin"
-                  : "Dosyanızı yükleyin"}
+                    ? t("uploadApkOrAab")
+                    : t("uploadIpa")
+                  : t("uploadFile")}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -293,11 +300,9 @@ export default function NewVersionPage() {
                 >
                   <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Dosya yükleyin
+                    {t("uploadFile")}
                   </h3>
-                  <p className="text-gray-500 mb-4">
-                    Dosyayı sürükleyip bırakın veya seçmek için tıklayın
-                  </p>
+                  <p className="text-gray-500 mb-4">{t("dragDropFile")}</p>
                   <input
                     type="file"
                     onChange={handleFileChange}
@@ -317,16 +322,16 @@ export default function NewVersionPage() {
                   />
                   <label htmlFor="file-upload">
                     <Button type="button" asChild disabled={!app}>
-                      <span>{!app ? "Yükleniyor..." : "Dosya Seç"}</span>
+                      <span>{!app ? t("loading") : t("selectFile")}</span>
                     </Button>
                   </label>
                   <p className="text-xs text-gray-400 mt-2">
-                    Desteklenen formatlar:{" "}
+                    {t("supportedFormats")}{" "}
                     {app
                       ? app.platform === "ANDROID"
                         ? ALLOWED_EXTENSIONS.ANDROID.join(", ")
                         : ALLOWED_EXTENSIONS.IOS.join(", ")
-                      : "Yükleniyor..."}
+                      : t("loading")}
                   </p>
                 </div>
               ) : (
@@ -358,15 +363,13 @@ export default function NewVersionPage() {
           {/* Version Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Versiyon Bilgileri</CardTitle>
-              <CardDescription>
-                Versiyon numarası ve build bilgilerini girin
-              </CardDescription>
+              <CardTitle>{t("versionInfo")}</CardTitle>
+              <CardDescription>{t("versionInfoDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="version">Versiyon Numarası</Label>
+                  <Label htmlFor="version">{t("versionNumber")}</Label>
                   <Input
                     id="version"
                     name="version"
@@ -377,7 +380,7 @@ export default function NewVersionPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="buildNumber">Build Numarası</Label>
+                  <Label htmlFor="buildNumber">{t("buildNumber")}</Label>
                   <Input
                     id="buildNumber"
                     name="buildNumber"
@@ -391,13 +394,15 @@ export default function NewVersionPage() {
               </div>
 
               <div>
-                <Label htmlFor="releaseNotes">Sürüm Notları (Opsiyonel)</Label>
+                <Label htmlFor="releaseNotes">
+                  {t("releaseNotesOptional")}
+                </Label>
                 <Textarea
                   id="releaseNotes"
                   name="releaseNotes"
                   value={formData.releaseNotes}
                   onChange={handleChange}
-                  placeholder="Bu versiyonda yapılan değişiklikler..."
+                  placeholder={t("releaseNotesPlaceholder")}
                   rows={4}
                 />
               </div>
@@ -410,11 +415,9 @@ export default function NewVersionPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Tag className="mr-2 h-5 w-5" />
-                  Tag'ler
+                  {t("tagsForVersion")}
                 </CardTitle>
-                <CardDescription>
-                  Bu versiyon için uygun tag'leri seçin (opsiyonel)
-                </CardDescription>
+                <CardDescription>{t("tagsDescription")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -444,7 +447,7 @@ export default function NewVersionPage() {
                   {selectedTags.length > 0 && (
                     <div>
                       <p className="text-sm text-gray-600 mb-2">
-                        Seçilen tag'ler:
+                        {t("selectedTags")}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {selectedTags.map((tagId) => {
@@ -483,7 +486,7 @@ export default function NewVersionPage() {
               <CardContent className="pt-6">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Yükleniyor...</span>
+                    <span>{t("uploading")}</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <Progress value={uploadProgress} />
@@ -496,19 +499,19 @@ export default function NewVersionPage() {
           <div className="flex justify-end space-x-4">
             <Link href={`/dashboard/apps/${slug}`}>
               <Button type="button" variant="outline">
-                İptal
+                {t("cancel")}
               </Button>
             </Link>
             <Button type="submit" disabled={isLoading || !file}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Yükleniyor...
+                  {t("uploading")}
                 </>
               ) : (
                 <>
                   <Upload className="mr-2 h-4 w-4" />
-                  Versiyonu Yükle
+                  {t("uploadVersion")}
                 </>
               )}
             </Button>

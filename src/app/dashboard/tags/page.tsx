@@ -40,6 +40,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface TagData {
   id: string;
@@ -63,6 +66,7 @@ const COLOR_PRESETS = [
 ];
 
 export default function TagsPage() {
+  const { t } = useTranslation("common");
   const [tags, setTags] = useState<TagData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -83,13 +87,13 @@ export default function TagsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Tag'ler yüklenirken hata oluştu");
+        toast.error(data.error || t("tagsLoadError"));
         return;
       }
 
       setTags(data);
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -108,16 +112,16 @@ export default function TagsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Tag oluşturulurken hata oluştu");
+        toast.error(data.error || t("tagCreateError"));
         return;
       }
 
-      toast.success("Tag başarıyla oluşturuldu");
+      toast.success(t("tagCreatedSuccess"));
       setIsCreateDialogOpen(false);
       setFormData({ name: "", color: "#3B82F6" });
       fetchTags();
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
@@ -136,22 +140,22 @@ export default function TagsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Tag güncellenirken hata oluştu");
+        toast.error(data.error || t("tagUpdateError"));
         return;
       }
 
-      toast.success("Tag başarıyla güncellendi");
+      toast.success(t("tagUpdatedSuccess"));
       setIsEditDialogOpen(false);
       setEditingTag(null);
       setFormData({ name: "", color: "#3B82F6" });
       fetchTags();
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
   const handleDeleteTag = async (tagId: string) => {
-    if (!confirm("Bu tag'i silmek istediğinizden emin misiniz?")) {
+    if (!confirm(t("deleteTagConfirm"))) {
       return;
     }
 
@@ -163,14 +167,14 @@ export default function TagsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Tag silinirken hata oluştu");
+        toast.error(data.error || t("tagDeleteError"));
         return;
       }
 
-      toast.success("Tag başarıyla silindi");
+      toast.success(t("tagDeletedSuccess"));
       fetchTags();
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
@@ -188,7 +192,7 @@ export default function TagsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Tag'ler yükleniyor...</p>
+          <p className="text-gray-600">{t("tagsLoading")}</p>
         </div>
       </div>
     );
@@ -203,13 +207,14 @@ export default function TagsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Tag className="mr-3 h-8 w-8" />
-                Tag Yönetimi
+                {t("tagManagement")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Versiyon etiketlerini yönetin
+                {t("tagManagementDescription")}
               </p>
             </div>
             <div className="flex space-x-3">
+              <LanguageSwitcher />
               <Dialog
                 open={isCreateDialogOpen}
                 onOpenChange={setIsCreateDialogOpen}
@@ -217,20 +222,20 @@ export default function TagsPage() {
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
-                    Yeni Tag
+                    {t("newTag")}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Yeni Tag Oluştur</DialogTitle>
+                    <DialogTitle>{t("createNewTag")}</DialogTitle>
                     <DialogDescription>
-                      Versiyon etiketlemek için yeni bir tag oluşturun
+                      {t("createNewTagDescription")}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="name" className="text-right">
-                        İsim
+                        {t("name")}
                       </Label>
                       <Input
                         id="name"
@@ -239,12 +244,12 @@ export default function TagsPage() {
                           setFormData({ ...formData, name: e.target.value })
                         }
                         className="col-span-3"
-                        placeholder="Tag adı"
+                        placeholder={t("tagNamePlaceholder")}
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="color" className="text-right">
-                        Renk
+                        {t("color")}
                       </Label>
                       <div className="col-span-3 space-y-2">
                         <Input
@@ -276,22 +281,22 @@ export default function TagsPage() {
                       variant="outline"
                       onClick={() => setIsCreateDialogOpen(false)}
                     >
-                      İptal
+                      {t("cancel")}
                     </Button>
-                    <Button onClick={handleCreateTag}>Oluştur</Button>
+                    <Button onClick={handleCreateTag}>{t("create")}</Button>
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
               <Link href="/dashboard">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href="/auth/signout">
                 <Button variant="outline">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
+                  {t("signOut")}
                 </Button>
               </Link>
             </div>
@@ -302,34 +307,30 @@ export default function TagsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Tag'ler</CardTitle>
-            <CardDescription>
-              Organizasyonunuzdaki tüm tag'ler ve kullanım sayıları
-            </CardDescription>
+            <CardTitle>{t("tags")}</CardTitle>
+            <CardDescription>{t("tagsListDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             {tags.length === 0 ? (
               <div className="text-center py-8">
                 <Tag className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Henüz tag yok
+                  {t("noTagsYet")}
                 </h3>
-                <p className="text-gray-500 mb-4">
-                  Versiyonlarınızı etiketlemek için tag oluşturun
-                </p>
+                <p className="text-gray-500 mb-4">{t("noTagsDescription")}</p>
                 <Button onClick={() => setIsCreateDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  İlk Tag'i Oluştur
+                  {t("createFirstTag")}
                 </Button>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tag</TableHead>
-                    <TableHead>Kullanım Sayısı</TableHead>
-                    <TableHead>Oluşturulma Tarihi</TableHead>
-                    <TableHead className="text-right">İşlemler</TableHead>
+                    <TableHead>{t("tags")}</TableHead>
+                    <TableHead>{t("usageCount")}</TableHead>
+                    <TableHead>{t("createdDate")}</TableHead>
+                    <TableHead className="text-right">{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -347,7 +348,7 @@ export default function TagsPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {tag._count.versionTags} versiyon
+                          {tag._count.versionTags} {t("versionsCount")}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -389,13 +390,13 @@ export default function TagsPage() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tag Düzenle</DialogTitle>
-            <DialogDescription>Tag bilgilerini güncelleyin</DialogDescription>
+            <DialogTitle>{t("editTag")}</DialogTitle>
+            <DialogDescription>{t("editTagDescription")}</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-name" className="text-right">
-                İsim
+                {t("name")}
               </Label>
               <Input
                 id="edit-name"
@@ -404,12 +405,12 @@ export default function TagsPage() {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 className="col-span-3"
-                placeholder="Tag adı"
+                placeholder={t("tagNamePlaceholder")}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-color" className="text-right">
-                Renk
+                {t("color")}
               </Label>
               <div className="col-span-3 space-y-2">
                 <Input
@@ -439,9 +440,9 @@ export default function TagsPage() {
               variant="outline"
               onClick={() => setIsEditDialogOpen(false)}
             >
-              İptal
+              {t("cancel")}
             </Button>
-            <Button onClick={handleEditTag}>Güncelle</Button>
+            <Button onClick={handleEditTag}>{t("update")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

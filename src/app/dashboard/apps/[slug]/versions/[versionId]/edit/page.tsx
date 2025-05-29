@@ -18,6 +18,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, ArrowLeft, Edit, Tag, Save, FileText } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface TagData {
   id: string;
@@ -46,6 +49,7 @@ interface VersionData {
 }
 
 export default function EditVersionPage() {
+  const { t } = useTranslation("common");
   const [formData, setFormData] = useState({
     version: "",
     buildNumber: "",
@@ -74,7 +78,7 @@ export default function EditVersionPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Versiyon yüklenirken hata oluştu");
+        toast.error(data.error || t("versionLoadError"));
         return;
       }
 
@@ -82,7 +86,7 @@ export default function EditVersionPage() {
         (v: VersionData) => v.id === versionId
       );
       if (!version) {
-        toast.error("Versiyon bulunamadı");
+        toast.error(t("versionNotFound"));
         router.push(`/dashboard/apps/${slug}`);
         return;
       }
@@ -95,7 +99,7 @@ export default function EditVersionPage() {
       });
       setSelectedTags(version.tags.map((vt: { tag: TagData }) => vt.tag.id));
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoadingData(false);
     }
@@ -156,21 +160,21 @@ export default function EditVersionPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Bir hata oluştu");
+        setError(data.error || t("versionUpdateError"));
       } else {
-        toast.success("Versiyon başarıyla güncellendi!");
+        toast.success(t("versionUpdatedSuccess"));
         router.push(`/dashboard/apps/${slug}`);
       }
     } catch (error) {
-      setError("Bir hata oluştu");
+      setError(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatFileSize = (bytes: number) => {
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    if (bytes === 0) return "0 Bytes";
+    const sizes = [t("bytes"), t("kb"), t("mb"), t("gb")];
+    if (bytes === 0) return `0 ${t("bytes")}`;
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
     return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
   };
@@ -190,7 +194,7 @@ export default function EditVersionPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Versiyon yükleniyor...</p>
+          <p className="text-gray-600">{t("loadingVersion")}</p>
         </div>
       </div>
     );
@@ -201,13 +205,13 @@ export default function EditVersionPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Versiyon bulunamadı
+            {t("versionNotFound")}
           </h2>
           <p className="text-gray-600 mb-4">
-            Düzenlemek istediğiniz versiyon mevcut değil.
+            {t("versionNotFoundDescription")}
           </p>
           <Link href={`/dashboard/apps/${slug}`}>
-            <Button>Geri Dön</Button>
+            <Button>{t("goBack")}</Button>
           </Link>
         </div>
       </div>
@@ -223,22 +227,23 @@ export default function EditVersionPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Edit className="mr-3 h-8 w-8" />
-                Versiyon Düzenle
+                {t("editVersion")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                v{versionData.version} - Build {versionData.buildNumber}
+                v{versionData.version} - {t("build")} {versionData.buildNumber}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline" size="sm">
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <Link href={`/dashboard/apps/${slug}`}>
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Geri Dön
+                  {t("goBack")}
                 </Button>
               </Link>
             </div>
@@ -250,10 +255,8 @@ export default function EditVersionPage() {
         {/* File Info */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Dosya Bilgileri</CardTitle>
-            <CardDescription>
-              Yüklenen dosya bilgileri (değiştirilemez)
-            </CardDescription>
+            <CardTitle>{t("fileInfo")}</CardTitle>
+            <CardDescription>{t("fileInfoDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="border rounded-lg p-4 bg-gray-50">
@@ -263,11 +266,11 @@ export default function EditVersionPage() {
                   <p className="font-medium">{versionData.originalFileName}</p>
                   <p className="text-sm text-gray-500">
                     {formatFileSize(versionData.fileSize)} •{" "}
-                    {versionData.downloadCount} indirme
+                    {versionData.downloadCount} {t("downloads")}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {versionData.uploadedBy.name} tarafından{" "}
-                    {formatDate(versionData.createdAt)} tarihinde yüklendi
+                    {versionData.uploadedBy.name} {t("by")}{" "}
+                    {formatDate(versionData.createdAt)} {t("uploadedOn")}
                   </p>
                 </div>
               </div>
@@ -279,15 +282,13 @@ export default function EditVersionPage() {
           {/* Version Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Versiyon Bilgileri</CardTitle>
-              <CardDescription>
-                Versiyon numarası ve build bilgilerini güncelleyin
-              </CardDescription>
+              <CardTitle>{t("versionInfo")}</CardTitle>
+              <CardDescription>{t("versionInfoDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="version">Versiyon Numarası</Label>
+                  <Label htmlFor="version">{t("versionNumber")}</Label>
                   <Input
                     id="version"
                     name="version"
@@ -298,7 +299,7 @@ export default function EditVersionPage() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="buildNumber">Build Numarası</Label>
+                  <Label htmlFor="buildNumber">{t("buildNumber")}</Label>
                   <Input
                     id="buildNumber"
                     name="buildNumber"
@@ -312,13 +313,13 @@ export default function EditVersionPage() {
               </div>
 
               <div>
-                <Label htmlFor="releaseNotes">Sürüm Notları</Label>
+                <Label htmlFor="releaseNotes">{t("releaseNotes")}</Label>
                 <Textarea
                   id="releaseNotes"
                   name="releaseNotes"
                   value={formData.releaseNotes}
                   onChange={handleChange}
-                  placeholder="Bu versiyonda yapılan değişiklikler..."
+                  placeholder={t("releaseNotesPlaceholder")}
                   rows={4}
                 />
               </div>
@@ -331,10 +332,10 @@ export default function EditVersionPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Tag className="mr-2 h-5 w-5" />
-                  Tag'ler
+                  {t("tagsForVersion")}
                 </CardTitle>
                 <CardDescription>
-                  Bu versiyon için uygun tag'leri seçin
+                  {t("tagsForVersionDescription")}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -365,7 +366,7 @@ export default function EditVersionPage() {
                   {selectedTags.length > 0 && (
                     <div>
                       <p className="text-sm text-gray-600 mb-2">
-                        Seçilen tag'ler:
+                        {t("selectedTags")}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {selectedTags.map((tagId) => {
@@ -402,19 +403,19 @@ export default function EditVersionPage() {
           <div className="flex justify-end space-x-4">
             <Link href={`/dashboard/apps/${slug}`}>
               <Button type="button" variant="outline">
-                İptal
+                {t("cancel")}
               </Button>
             </Link>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Güncelleniyor...
+                  {t("updating")}
                 </>
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Değişiklikleri Kaydet
+                  {t("saveChanges")}
                 </>
               )}
             </Button>
