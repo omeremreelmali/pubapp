@@ -47,6 +47,9 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import { InviteUserDialog } from "@/components/dashboard/invite-user-dialog";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface User {
   id: string;
@@ -84,6 +87,8 @@ export default function UsersPage() {
   const [editingMember, setEditingMember] = useState<Member | null>(null);
   const [newRole, setNewRole] = useState<string>("");
   const [dialog, setDialog] = useState<boolean>(false);
+  const { t } = useTranslation("common");
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -122,7 +127,7 @@ export default function UsersPage() {
         setPendingInvitations(invitationsData.invitations || []);
       }
     } catch (error) {
-      toast.error("Veriler yüklenirken hata oluştu");
+      toast.error(t("errorOccurred"));
     } finally {
       setIsLoading(false);
     }
@@ -141,23 +146,23 @@ export default function UsersPage() {
       });
 
       if (response.ok) {
-        toast.success("Kullanıcı rolü başarıyla güncellendi");
+        toast.success(t("userRoleUpdated"));
         setEditingMember(null);
         setNewRole("");
         fetchData();
       } else {
         const data = await response.json();
-        toast.error(data.error || "Rol güncellenirken hata oluştu");
+        toast.error(data.error || t("roleUpdateError"));
       }
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
     try {
       if (!session?.user?.activeOrganization) {
-        toast.error("Aktif organizasyon bulunamadı");
+        toast.error(t("noActiveOrganization"));
         return;
       }
 
@@ -169,14 +174,14 @@ export default function UsersPage() {
       );
 
       if (response.ok) {
-        toast.success("Davet başarıyla iptal edildi");
+        toast.success(t("inviteCancelled"));
         fetchData();
       } else {
         const data = await response.json();
-        toast.error(data.error || "Davet iptal edilirken hata oluştu");
+        toast.error(data.error || t("inviteCancelError"));
       }
     } catch (error) {
-      toast.error("Bir hata oluştu");
+      toast.error(t("errorOccurred"));
     }
   };
 
@@ -206,7 +211,7 @@ export default function UsersPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Kullanıcılar yükleniyor...</p>
+          <p className="text-gray-600">{t("usersLoading")}</p>
         </div>
       </div>
     );
@@ -221,26 +226,29 @@ export default function UsersPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Users className="mr-3 h-8 w-8" />
-                Kullanıcı Yönetimi
+                {t("userManagement")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
                 {session?.user?.activeOrganization
-                  ? `${session.user.activeOrganization.name} organizasyonundaki kullanıcıları yönetin`
-                  : "Organizasyonunuzdaki kullanıcıları yönetin"}
+                  ? t("manageUsersDescription", {
+                      organizationName: session.user.activeOrganization.name,
+                    })
+                  : t("manageUsers")}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard">
                 <Button variant="outline">
                   <ArrowLeft className="mr-2 h-4 w-4" />
-                  Ana Sayfa
+                  {t("homepage")}
                 </Button>
               </Link>
               <InviteUserDialog />
               <Link href="/auth/signout">
                 <Button variant="outline">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
+                  {t("signOut")}
                 </Button>
               </Link>
             </div>
@@ -254,7 +262,7 @@ export default function UsersPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Toplam Kullanıcı
+                {t("totalUsers")}
               </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -266,7 +274,7 @@ export default function UsersPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Bekleyen Davet
+                {t("pendingInvites")}
               </CardTitle>
               <Mail className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -280,7 +288,7 @@ export default function UsersPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Admin Sayısı
+                {t("adminCount")}
               </CardTitle>
               <UserPlus className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -295,19 +303,17 @@ export default function UsersPage() {
         {/* Active Users */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle>Aktif Kullanıcılar</CardTitle>
-            <CardDescription>
-              Organizasyonunuzdaki tüm kullanıcılar
-            </CardDescription>
+            <CardTitle>{t("activeUsers")}</CardTitle>
+            <CardDescription>{t("allUsersDescription")}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Kullanıcı</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Katılma Tarihi</TableHead>
-                  <TableHead>İşlemler</TableHead>
+                  <TableHead>{t("user")}</TableHead>
+                  <TableHead>{t("role")}</TableHead>
+                  <TableHead>{t("joinDate")}</TableHead>
+                  <TableHead>{t("actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -339,26 +345,33 @@ export default function UsersPage() {
                             }}
                           >
                             <Edit className="h-4 w-4 mr-1" />
-                            Düzenle
+                            {t("edit")}
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>Kullanıcı Rolünü Düzenle</DialogTitle>
+                            <DialogTitle>{t("editUserRole")}</DialogTitle>
                             <DialogDescription>
-                              {member.user.name} kullanıcısının rolünü
-                              değiştirin
+                              {t("editUserRoleDescription", {
+                                userName: member.user.name,
+                              })}
                             </DialogDescription>
                           </DialogHeader>
                           <div className="py-4">
                             <Select value={newRole} onValueChange={setNewRole}>
                               <SelectTrigger>
-                                <SelectValue placeholder="Rol seçin" />
+                                <SelectValue placeholder={t("selectRole")} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="ADMIN">Admin</SelectItem>
-                                <SelectItem value="EDITOR">Editor</SelectItem>
-                                <SelectItem value="TESTER">Tester</SelectItem>
+                                <SelectItem value="ADMIN">
+                                  {t("admin")}
+                                </SelectItem>
+                                <SelectItem value="EDITOR">
+                                  {t("editor")}
+                                </SelectItem>
+                                <SelectItem value="TESTER">
+                                  {t("tester")}
+                                </SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -370,9 +383,11 @@ export default function UsersPage() {
                                 setEditingMember(null);
                               }}
                             >
-                              İptal
+                              {t("cancel")}
                             </Button>
-                            <Button onClick={handleEditRole}>Kaydet</Button>
+                            <Button onClick={handleEditRole}>
+                              {t("save")}
+                            </Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
@@ -388,18 +403,18 @@ export default function UsersPage() {
         {pendingInvitations.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Bekleyen Davetler</CardTitle>
-              <CardDescription>Henüz kabul edilmemiş davetler</CardDescription>
+              <CardTitle>{t("pendingInvitations")}</CardTitle>
+              <CardDescription>{t("notAcceptedInvites")}</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Rol</TableHead>
-                    <TableHead>Gönderilme Tarihi</TableHead>
-                    <TableHead>Son Geçerlilik</TableHead>
-                    <TableHead>İşlemler</TableHead>
+                    <TableHead>{t("email")}</TableHead>
+                    <TableHead>{t("role")}</TableHead>
+                    <TableHead>{t("sentDate")}</TableHead>
+                    <TableHead>{t("expiryDate")}</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -420,7 +435,7 @@ export default function UsersPage() {
                           onClick={() => handleCancelInvitation(invitation.id)}
                         >
                           <Trash2 className="h-4 w-4 mr-1" />
-                          İptal Et
+                          {t("cancelInvite")}
                         </Button>
                       </TableCell>
                     </TableRow>
