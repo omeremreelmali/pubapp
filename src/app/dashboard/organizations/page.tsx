@@ -15,8 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Building2, Users, Plus, LogOut } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function OrganizationsPage() {
+  const { t } = useTranslation("common");
   const { data: session, update } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +33,7 @@ export default function OrganizationsPage() {
       );
 
       if (!selectedOrg) {
-        toast.error("Organizasyon bulunamadı");
+        toast.error(t("organizationNotFound"));
         return;
       }
 
@@ -44,17 +48,21 @@ export default function OrganizationsPage() {
         },
       });
 
-      toast.success(`${selectedOrg.organization.name} organizasyonuna geçildi`);
+      toast.success(
+        t("organizationSwitched", {
+          organizationName: selectedOrg.organization.name,
+        })
+      );
       router.push("/dashboard");
     } catch (error) {
-      toast.error("Organizasyon değiştirilirken hata oluştu");
+      toast.error(t("organizationSwitchError"));
     } finally {
       setIsLoading(false);
     }
   };
 
   if (!session?.user) {
-    return <div>Yükleniyor...</div>;
+    return <div>{t("loading")}...</div>;
   }
 
   return (
@@ -66,23 +74,24 @@ export default function OrganizationsPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Building2 className="mr-3 h-8 w-8" />
-                Organizasyon Seçin
+                {t("selectOrganization")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Çalışmak istediğiniz organizasyonu seçin
+                {t("selectOrganizationDescription")}
               </p>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
               <Link href="/dashboard/organizations/create">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  Yeni Organizasyon
+                  {t("newOrganization")}
                 </Button>
               </Link>
               <Link href="/auth/signout">
                 <Button variant="outline">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Çıkış Yap
+                  {t("signOut")}
                 </Button>
               </Link>
             </div>
@@ -96,16 +105,15 @@ export default function OrganizationsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <Building2 className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Henüz organizasyon üyeliğiniz yok
+                {t("noOrganizationMembership")}
               </h3>
               <p className="text-gray-500 text-center mb-4">
-                Yeni bir organizasyon oluşturun veya mevcut bir organizasyona
-                davet bekleyin
+                {t("noOrganizationMembershipDescription")}
               </p>
               <Link href="/dashboard/organizations/create">
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  İlk Organizasyonunuzu Oluşturun
+                  {t("createFirstOrganization")}
                 </Button>
               </Link>
             </CardContent>
@@ -139,7 +147,11 @@ export default function OrganizationsPage() {
                           : "outline"
                       }
                     >
-                      {membership.role}
+                      {membership.role === "ADMIN"
+                        ? t("admin")
+                        : membership.role === "EDITOR"
+                        ? t("editor")
+                        : t("tester")}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -147,7 +159,7 @@ export default function OrganizationsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center text-sm text-gray-500">
                       <Users className="h-4 w-4 mr-1" />
-                      Organizasyon Üyesi
+                      {t("organizationMember")}
                     </div>
                     <Button
                       size="sm"
@@ -157,7 +169,7 @@ export default function OrganizationsPage() {
                         handleSelectOrganization(membership.organization.id);
                       }}
                     >
-                      Seç
+                      {t("select")}
                     </Button>
                   </div>
                 </CardContent>

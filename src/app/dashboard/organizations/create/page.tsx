@@ -18,8 +18,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Building2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
+import "@/i18n/i18n";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 export default function CreateOrganizationPage() {
+  const { t } = useTranslation("common");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -46,7 +50,7 @@ export default function CreateOrganizationPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || "Organizasyon oluşturulurken hata oluştu");
+        setError(data.error || t("organizationCreateErrorGeneric"));
         return;
       }
 
@@ -72,10 +76,10 @@ export default function CreateOrganizationPage() {
         ],
       });
 
-      toast.success("Organizasyon başarıyla oluşturuldu!");
+      toast.success(t("organizationCreatedSuccess"));
       router.push("/dashboard");
     } catch (error) {
-      setError("Bir hata oluştu");
+      setError(t("organizationCreateError"));
     } finally {
       setIsLoading(false);
     }
@@ -90,18 +94,21 @@ export default function CreateOrganizationPage() {
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center">
                 <Building2 className="mr-3 h-8 w-8" />
-                Yeni Organizasyon Oluştur
+                {t("createNewOrganization")}
               </h1>
               <p className="mt-1 text-sm text-gray-500">
-                Ekibiniz için yeni bir organizasyon oluşturun
+                {t("createNewOrganizationDescription")}
               </p>
             </div>
-            <Link href="/dashboard/organizations">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Geri Dön
-              </Button>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <LanguageSwitcher />
+              <Link href="/dashboard/organizations">
+                <Button variant="outline">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  {t("goBack")}
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -109,9 +116,9 @@ export default function CreateOrganizationPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card>
           <CardHeader>
-            <CardTitle>Organizasyon Bilgileri</CardTitle>
+            <CardTitle>{t("organizationInfo")}</CardTitle>
             <CardDescription>
-              Organizasyonunuzun temel bilgilerini girin
+              {t("organizationInfoDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -123,7 +130,7 @@ export default function CreateOrganizationPage() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="name">Organizasyon Adı</Label>
+                <Label htmlFor="name">{t("organizationName")}</Label>
                 <Input
                   id="name"
                   type="text"
@@ -131,21 +138,23 @@ export default function CreateOrganizationPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  placeholder="Şirket veya ekip adınız"
+                  placeholder={t("companyOrTeamName")}
                   required
                   disabled={isLoading}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Açıklama (İsteğe bağlı)</Label>
+                <Label htmlFor="description">
+                  {t("organizationDescriptionOptional")}
+                </Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) =>
                     setFormData({ ...formData, description: e.target.value })
                   }
-                  placeholder="Organizasyonunuz hakkında kısa bir açıklama"
+                  placeholder={t("organizationDescriptionOptionalPlaceholder")}
                   disabled={isLoading}
                   rows={3}
                 />
@@ -154,14 +163,14 @@ export default function CreateOrganizationPage() {
               <div className="flex justify-end space-x-4">
                 <Link href="/dashboard/organizations">
                   <Button type="button" variant="outline" disabled={isLoading}>
-                    İptal
+                    {t("cancel")}
                   </Button>
                 </Link>
                 <Button type="submit" disabled={isLoading}>
                   {isLoading && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Organizasyon Oluştur
+                  {t("createOrganizationButton")}
                 </Button>
               </div>
             </form>
