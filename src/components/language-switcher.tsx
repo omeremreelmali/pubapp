@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,8 +20,17 @@ const languages = {
 export function LanguageSwitcher() {
   const { i18n } = useTranslation();
 
+  // Load saved language on component mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("preferred-language");
+    if (savedLanguage && savedLanguage !== i18n.language) {
+      i18n.changeLanguage(savedLanguage);
+    }
+  }, [i18n]);
+
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
+    localStorage.setItem("preferred-language", lng);
   };
 
   return (
