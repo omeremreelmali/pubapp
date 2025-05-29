@@ -9,11 +9,17 @@ services:
       POSTGRES_USER: pubapp
       POSTGRES_PASSWORD: pubapp123
     ports:
-      - "55432:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - pubapp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pubapp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   minio:
     image: minio/minio:latest
@@ -29,14 +35,48 @@ services:
       - minio_data:/data
     networks:
       - pubapp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+
   nextjs:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pubapp:${DOCKER_TAG:-latest}
+    container_name: pubapp-nextjs
     ports:
       - "3055:3055"
     environment:
       NODE_ENV: production
-      PORT: 3055 # Next.js 'PORT' environment variable'ını okur
-    # Eğer .env kullanıyorsan, .env dosyasına da PORT=3055 ekle
+      PORT: 3055
+      DATABASE_URL: postgresql://pubapp:pubapp123@postgres:5432/pubapp
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3055}
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET_NAME: pubapp-files
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - pubapp-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3055/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/app/uploads
 
   # Redis for caching (optional)
   redis:
@@ -48,11 +88,40 @@ services:
       - redis_data:/data
     networks:
       - pubapp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Nginx reverse proxy (production)
+  nginx:
+    image: nginx:alpine
+    container_name: pubapp-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - nextjs
+    networks:
+      - pubapp-network
+    restart: unless-stopped
+    profiles:
+      - production
 
 volumes:
   postgres_data:
+    driver: local
   minio_data:
+    driver: local
   redis_data:
+    driver: local
+  uploads_data:
+    driver: local
 
 networks:
   pubapp-network:
