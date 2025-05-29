@@ -35,24 +35,44 @@ async function getDashboardStats(
     };
   }
 
-  const [totalUsers, totalApps, totalDownloads] = await Promise.all([
-    prisma.organizationMember.count({
-      where: { organizationId },
-    }),
-    prisma.app.count({
-      where: { organizationId },
-    }),
-    prisma.appVersion.aggregate({
-      where: { app: { organizationId } },
-      _sum: { downloadCount: true },
-    }),
-  ]);
+  const [totalUsers, totalApps, totalDownloads, recentActivity] =
+    await Promise.all([
+      prisma.organizationMember.count({
+        where: { organizationId },
+      }),
+      prisma.app.count({
+        where: { organizationId },
+      }),
+      prisma.appVersion.aggregate({
+        where: { app: { organizationId } },
+        _sum: { downloadCount: true },
+      }),
+      prisma.appVersion.findMany({
+        where: { app: { organizationId } },
+        include: {
+          app: {
+            select: {
+              name: true,
+              slug: true,
+            },
+          },
+          uploadedBy: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+      }),
+    ]);
 
   return {
     totalUsers,
     totalApps,
     totalDownloads: totalDownloads._sum.downloadCount || 0,
-    recentActivity: [],
+    recentActivity,
   };
 }
 
@@ -250,9 +270,50 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-8 text-gray-500">
-              Henüz aktivite bulunmuyor
-            </div>
+            {stats.recentActivity.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Henüz aktivite bulunmuyor
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {stats.recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-center justify-between py-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="bg-blue-100 p-2 rounded-full">
+                        <Plus className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          <Link
+                            href={`/dashboard/apps/${activity.app.slug}`}
+                            className="hover:text-blue-600"
+                          >
+                            {activity.app.name}
+                          </Link>{" "}
+                          için yeni versiyon yüklendi
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          v{activity.version} • {activity.uploadedBy.name}{" "}
+                          tarafından
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {new Intl.DateTimeFormat("tr-TR", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }).format(new Date(activity.createdAt))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
