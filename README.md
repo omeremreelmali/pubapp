@@ -163,6 +163,92 @@ PubApp, kendi sunucunuzda barındırabileceğiniz, mobil uygulama dağıtımı v
 - **Prisma Studio** - Database GUI
 - **Docker Compose** - Container orchestration
 
+## ⚙️ Kurulum ve Yapılandırma
+
+### 1. Environment Variables
+
+Projeyi çalıştırmadan önce environment variable'ları yapılandırmanız gerekiyor:
+
+```bash
+# .env.example dosyasını kopyalayın
+cp .env.example .env
+
+# .env dosyasını düzenleyin
+nano .env
+```
+
+**Gerekli Environment Variables:**
+
+```env
+# NextAuth Configuration
+NEXTAUTH_SECRET=your-secret-key-here
+NEXTAUTH_URL=http://localhost:3055
+
+# Database Configuration
+DATABASE_URL=postgresql://username:password@host:port/database
+
+# Docker Configuration
+DOCKER_TAG=latest
+```
+
+**NEXTAUTH_SECRET Oluşturma:**
+
+```bash
+openssl rand -base64 32
+```
+
+### 2. Veritabanı Kurulumu
+
+```bash
+# Prisma migration'larını çalıştırın
+npx prisma migrate dev
+
+# Seed data'yı yükleyin (admin kullanıcısı oluşturur)
+npx prisma db seed
+```
+
+**Varsayılan Admin Kullanıcısı:**
+
+- Email: `admin@test.com`
+- Şifre: `admin123`
+
+### 3. Development Sunucusu
+
+```bash
+# Dependencies'leri yükleyin
+npm install
+
+# Development sunucusunu başlatın
+npm run dev
+```
+
+### 4. Docker ile Çalıştırma
+
+```bash
+# Docker container'ları başlatın
+docker compose up --build
+
+# Sadece MinIO ve Redis için (external PostgreSQL kullanıyorsanız)
+docker compose up minio redis
+```
+
+### 5. Production Deployment
+
+```bash
+# Production build
+npm run build
+
+# Production sunucusu
+npm start
+```
+
+## 🔒 Güvenlik Notları
+
+- `.env` dosyası asla git'e commit edilmemelidir
+- Production'da güçlü `NEXTAUTH_SECRET` kullanın
+- Veritabanı şifrelerini güvenli tutun
+- MinIO access key'lerini değiştirin
+
 ## 🗂️ Proje Yapısı
 
 ```
