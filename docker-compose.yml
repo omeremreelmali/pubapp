@@ -101,8 +101,6 @@ volumes:
     driver: local
   minio_data:
     driver: local
-  redis_data:
-    driver: local
   uploads_data:
     driver: local
 
