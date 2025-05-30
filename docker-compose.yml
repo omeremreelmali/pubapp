@@ -1,26 +1,6 @@
 version: "3.8"
 
 services:
-  postgres:
-    image: postgres:15
-    container_name: pubapp-postgres
-    environment:
-      POSTGRES_DB: pubapp
-      POSTGRES_USER: pubapp
-      POSTGRES_PASSWORD: pubapp123
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - pubapp-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pubapp"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   minio:
     image: minio/minio:latest
     container_name: pubapp-minio
@@ -53,7 +33,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3055
-      DATABASE_URL: postgresql://pubapp:pubapp123@postgres:5432/pubapp
+      DATABASE_URL: ${DATABASE_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-super-secret-nextauth-key-change-in-production}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3055}
       MINIO_ENDPOINT: minio
@@ -62,12 +42,12 @@ services:
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET_NAME: pubapp-files
     depends_on:
-      postgres:
-        condition: service_healthy
       minio:
         condition: service_healthy
     networks:
       - pubapp-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3055/api/health"]
       interval: 30s
@@ -77,6 +57,23 @@ services:
     restart: unless-stopped
     volumes:
       - uploads_data:/app/uploads
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: pubapp-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pubapp-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
 
   # Nginx reverse proxy (production)
   nginx:
@@ -97,8 +94,6 @@ services:
       - production
 
 volumes:
-  postgres_data:
-    driver: local
   minio_data:
     driver: local
   redis_data:
