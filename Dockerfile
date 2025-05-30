@@ -9,6 +9,13 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Install production dependencies for the runner stage
+FROM base AS prod-deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev
 
 # Rebuild the source code only when needed
@@ -55,8 +62,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src/generated ./src/generated
 
-# Install production dependencies
-COPY --from=deps /app/node_modules ./node_modules
+# Install production dependencies only
+COPY --from=prod-deps /app/node_modules ./node_modules
 
 USER nextjs
 
@@ -67,6 +74,6 @@ ENV HOSTNAME "0.0.0.0"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3000/api/health || exit 1
+  CMD curl -f http://localhost:3055/api/health || exit 1
 
 CMD ["node", "server.js"]
