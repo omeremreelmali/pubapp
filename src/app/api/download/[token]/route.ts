@@ -161,6 +161,8 @@ export async function GET(
     return NextResponse.redirect(downloadUrl);
   } catch (error: any) {
     console.error("Download error:", error);
+    console.error("Error stack:", error.stack);
+    console.error("Error message:", error.message);
     return NextResponse.json(
       { error: "İndirme sırasında bir hata oluştu" },
       { status: 500 }
