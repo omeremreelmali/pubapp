@@ -33,7 +33,20 @@ export async function generateUploadUrl(fileName: string, contentType: string) {
     policy.setExpires(new Date(Date.now() + 24 * 60 * 60 * 1000)); // 24 hours
 
     const { postURL, formData } = await minioClient.presignedPostPolicy(policy);
-    return { postURL, formData };
+    
+    // Production ortamında URL'i düzelt - nginx proxy üzerinden erişim için
+    let correctedPostURL = postURL;
+    if (process.env.NODE_ENV === "production" && process.env.MINIO_ENDPOINT?.includes("redvizor.app")) {
+      correctedPostURL = postURL.replace(
+        `http://${process.env.MINIO_ENDPOINT}`,
+        `https://${process.env.MINIO_ENDPOINT}/minio`
+      ).replace(
+        `https://${process.env.MINIO_ENDPOINT}`,
+        `https://${process.env.MINIO_ENDPOINT}/minio`
+      );
+    }
+    
+    return { postURL: correctedPostURL, formData };
   } catch (error) {
     console.error("Error generating upload URL:", error);
     throw error;
@@ -51,6 +64,19 @@ export async function generateDownloadUrl(
       fileName,
       expirySeconds
     );
+    
+    // Production ortamında URL'i düzelt - nginx proxy üzerinden erişim için
+    if (process.env.NODE_ENV === "production" && process.env.MINIO_ENDPOINT?.includes("redvizor.app")) {
+      const correctedUrl = url.replace(
+        `http://${process.env.MINIO_ENDPOINT}`,
+        `https://${process.env.MINIO_ENDPOINT}/minio`
+      ).replace(
+        `https://${process.env.MINIO_ENDPOINT}`,
+        `https://${process.env.MINIO_ENDPOINT}/minio`
+      );
+      return correctedUrl;
+    }
+    
     return url;
   } catch (error) {
     console.error("Error generating download URL:", error);

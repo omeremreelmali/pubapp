@@ -36,8 +36,9 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-super-secret-nextauth-key-change-in-production}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://pubapp.redvizor.app}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-pubapp.redvizor.app/minio}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-pubapp.redvizor.app}
       MINIO_PORT: 443
+      MINIO_USE_SSL: "true"
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET_NAME: pubapp-files
